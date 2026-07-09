@@ -50,6 +50,82 @@ function updateDarkModeIcon(theme) {
     }
 }
 
+let lastLowStockAlerts = [];
+const LOW_STOCK_SEEN_KEY = 'medibill.lowStockAlertsSeenFingerprint';
+
+function getAlertsFingerprint(alerts) {
+    if (!alerts || !alerts.length) {
+        return '';
+    }
+
+    return alerts
+        .map(alert => `${alert.medicineId || alert.medicineCode || alert.medicineName}:${alert.currentStock}`)
+        .sort()
+        .join('|');
+}
+
+function getSeenFingerprint() {
+    return localStorage.getItem(LOW_STOCK_SEEN_KEY) || '';
+}
+
+function setSeenFingerprint(fingerprint) {
+    if (fingerprint) {
+        localStorage.setItem(LOW_STOCK_SEEN_KEY, fingerprint);
+    } else {
+        localStorage.removeItem(LOW_STOCK_SEEN_KEY);
+    }
+}
+
+function areAlertsSeen(alerts) {
+    const fingerprint = getAlertsFingerprint(alerts);
+    if (!fingerprint) {
+        return true;
+    }
+    return fingerprint === getSeenFingerprint();
+}
+
+function clearBellDisplay() {
+    const wrap = document.getElementById('notificationWrap');
+    const bell = document.getElementById('notificationBell');
+    const badge = document.getElementById('alertCount');
+    const icon = document.getElementById('notificationBellIcon');
+    const message = document.getElementById('notificationMessage');
+
+    if (badge) {
+        badge.textContent = '0';
+    }
+
+    if (message) {
+        message.textContent = '';
+        message.title = '';
+    }
+
+    if (wrap) {
+        wrap.classList.remove('has-alerts');
+    }
+
+    if (bell) {
+        bell.classList.remove('has-alerts');
+        bell.title = 'Low stock alerts (below 10 units)';
+    }
+
+    if (icon) {
+        icon.className = 'bi bi-bell';
+    }
+}
+
+function markAlertsAsSeen(alerts) {
+    const fingerprint = getAlertsFingerprint(alerts);
+    if (!fingerprint) {
+        setSeenFingerprint('');
+        clearBellDisplay();
+        return;
+    }
+
+    setSeenFingerprint(fingerprint);
+    clearBellDisplay();
+}
+
 function setupNotificationBell() {
     const bell = document.getElementById('notificationBell');
     const panel = document.getElementById('notificationPanel');
@@ -60,19 +136,13 @@ function setupNotificationBell() {
 
     bell.addEventListener('click', (event) => {
         event.stopPropagation();
-        panel.classList.toggle('show');
-        if (panel.classList.contains('show')) {
-            loadNotifications();
-        }
+        toggleNotificationPanel();
     });
 
     if (message) {
         message.addEventListener('click', (event) => {
             event.stopPropagation();
-            panel.classList.toggle('show');
-            if (panel.classList.contains('show')) {
-                loadNotifications();
-            }
+            toggleNotificationPanel();
         });
     }
 
@@ -84,6 +154,21 @@ function setupNotificationBell() {
     });
 }
 
+async function toggleNotificationPanel() {
+    const panel = document.getElementById('notificationPanel');
+    if (!panel) {
+        return;
+    }
+
+    const isOpening = !panel.classList.contains('show');
+    panel.classList.toggle('show');
+
+    if (isOpening) {
+        await loadNotifications();
+        markAlertsAsSeen(lastLowStockAlerts);
+    }
+}
+
 async function loadNotifications() {
     if (typeof API === 'undefined') {
         return;
@@ -91,14 +176,16 @@ async function loadNotifications() {
 
     try {
         const lowStockAlerts = await API.get('/api/notifications/low-stock');
-        updateNotificationBell(lowStockAlerts || []);
-        renderNotificationPanel(lowStockAlerts || []);
+        lastLowStockAlerts = lowStockAlerts || [];
+        renderNotificationPanel(lastLowStockAlerts);
+        updateNotificationBell(lastLowStockAlerts);
     } catch (e) {
         try {
             const data = await API.get('/api/dashboard');
             const alerts = (data.alerts || []).filter(alert => alert.type === 'LOW_STOCK');
-            updateNotificationBell(alerts);
+            lastLowStockAlerts = alerts;
             renderNotificationPanel(alerts);
+            updateNotificationBell(alerts);
         } catch (ignored) {
             // Dashboard API may not be available on login page
         }
@@ -125,6 +212,11 @@ function buildBellMessage(lowStockAlerts) {
 }
 
 function updateNotificationBell(lowStockAlerts) {
+    if (areAlertsSeen(lowStockAlerts)) {
+        clearBellDisplay();
+        return;
+    }
+
     const wrap = document.getElementById('notificationWrap');
     const bell = document.getElementById('notificationBell');
     const badge = document.getElementById('alertCount');
