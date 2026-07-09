@@ -8,3 +8,4 @@ backups/
 *.class
 *.log
 .DS_Store
+.env

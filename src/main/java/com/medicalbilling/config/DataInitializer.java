@@ -4,6 +4,7 @@ import com.medicalbilling.entity.*;
 import com.medicalbilling.repository.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
@@ -28,6 +29,15 @@ public class DataInitializer implements CommandLineRunner {
     private final ShopSettingsRepository shopSettingsRepository;
     private final BranchRepository branchRepository;
     private final PasswordEncoder passwordEncoder;
+
+    @Value("${app.seed.admin-password:}")
+    private String adminPassword;
+
+    @Value("${app.seed.pharmacist-password:}")
+    private String pharmacistPassword;
+
+    @Value("${app.seed.cashier-password:}")
+    private String cashierPassword;
 
     @Override
     public void run(String... args) {
@@ -69,13 +79,18 @@ public class DataInitializer implements CommandLineRunner {
 
     private void initializeAdminUser(Branch branch) {
         if (!userRepository.existsByUsername("admin")) {
+            if (!isSeedPasswordConfigured()) {
+                log.warn("Skipping default user seeding. Set APP_ADMIN_PASSWORD, APP_PHARMACIST_PASSWORD, and APP_CASHIER_PASSWORD (or app.seed.*-password properties).");
+                return;
+            }
+
             Role adminRole = roleRepository.findByName(RoleType.ROLE_ADMIN).orElseThrow();
             Role pharmacistRole = roleRepository.findByName(RoleType.ROLE_PHARMACIST).orElseThrow();
             Role cashierRole = roleRepository.findByName(RoleType.ROLE_CASHIER).orElseThrow();
 
             User admin = Objects.requireNonNull(User.builder()
                     .username("admin")
-                    .password(passwordEncoder.encode("admin123"))
+                    .password(passwordEncoder.encode(adminPassword))
                     .fullName("System Administrator")
                     .email("admin@medicalshop.com")
                     .phone("9876543210")
@@ -86,7 +101,7 @@ public class DataInitializer implements CommandLineRunner {
 
             User pharmacist = Objects.requireNonNull(User.builder()
                     .username("pharmacist")
-                    .password(passwordEncoder.encode("pharma123"))
+                    .password(passwordEncoder.encode(pharmacistPassword))
                     .fullName("John Pharmacist")
                     .email("pharmacist@medicalshop.com")
                     .roles(Set.of(pharmacistRole))
@@ -96,7 +111,7 @@ public class DataInitializer implements CommandLineRunner {
 
             User cashier = Objects.requireNonNull(User.builder()
                     .username("cashier")
-                    .password(passwordEncoder.encode("cashier123"))
+                    .password(passwordEncoder.encode(cashierPassword))
                     .fullName("Jane Cashier")
                     .email("cashier@medicalshop.com")
                     .roles(Set.of(cashierRole))
@@ -104,6 +119,14 @@ public class DataInitializer implements CommandLineRunner {
                     .build());
             userRepository.save(cashier);
         }
+    }
+
+    private boolean isSeedPasswordConfigured() {
+        return isPresent(adminPassword) && isPresent(pharmacistPassword) && isPresent(cashierPassword);
+    }
+
+    private boolean isPresent(String value) {
+        return value != null && !value.isBlank();
     }
 
     private void initializeCategories() {

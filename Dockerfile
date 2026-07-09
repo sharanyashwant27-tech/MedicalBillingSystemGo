@@ -15,7 +15,14 @@ RUN mvn clean package -DskipTests -B -q
 FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
 
-ENV JAVA_TOOL_OPTIONS="-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0"
+LABEL org.opencontainers.image.title="Medical Billing System" \
+      org.opencontainers.image.description="Spring Boot medical shop billing application" \
+      org.opencontainers.image.source="https://github.com/sharanyashwant27-tech/MedicalBillingSystem"
+
+ENV JAVA_TOOL_OPTIONS="-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0" \
+    SPRING_PROFILES_ACTIVE=docker
+
+# Secrets (APP_JWT_SECRET, MYSQL_ROOT_PASSWORD, etc.) are injected at runtime via docker-compose / .env — never baked into the image
 
 RUN addgroup -S medical && adduser -S medical -G medical && \
     mkdir -p /app/uploads /app/backups && \

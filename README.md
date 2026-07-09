@@ -29,6 +29,8 @@ Enterprise-level Medical Shop Billing System built with **Java 21**, **Spring Bo
 ### UI & DevOps
 - Dark mode, dashboard charts, notification alerts
 - Sidebar logout with dedicated logout-success page
+- Environment-based secrets (JWT, DB, API keys) — never in URLs or source code
+- URL query-string blocking for credentials and security keys
 - Docker & Docker Compose deployment (port **8085** on host → 8080 in container)
 - Unit and integration tests (8+ test classes)
 
@@ -49,13 +51,33 @@ Enterprise-level Medical Shop Billing System built with **Java 21**, **Spring Bo
 
 Run the full stack (MySQL + application) on **http://localhost:8085**.
 
-### 1. Build and start containers
+### 1. Configure secrets (required before first run)
+
+Docker Compose reads a `.env` file from the project root. Create it from the template:
+
+```bash
+cp .env.example .env
+```
+
+Edit `.env` and set **strong, unique** values for every required variable:
+
+| Variable | Purpose |
+|----------|---------|
+| `APP_JWT_SECRET` | JWT signing key (**minimum 32 characters**) |
+| `MYSQL_ROOT_PASSWORD` | MySQL root password |
+| `APP_ADMIN_PASSWORD` | Initial `admin` user password |
+| `APP_PHARMACIST_PASSWORD` | Initial `pharmacist` user password |
+| `APP_CASHIER_PASSWORD` | Initial `cashier` user password |
+
+> Never commit `.env`, put secrets in URLs, or hardcode them in `docker-compose.yml`. The app blocks `password`, `token`, `jwt`, `api_key`, `secret`, and similar query parameters.
+
+### 2. Build and start containers
 
 ```bash
 docker compose up --build -d
 ```
 
-Wait until the app is healthy (about 30–60 seconds on first start):
+Wait until both services are healthy (about 30–60 seconds on first start):
 
 ```bash
 docker compose ps
@@ -63,7 +85,7 @@ docker compose ps
 
 Both `medical-billing-mysql` and `medical-billing-app` should show **healthy**.
 
-### 2. Access the application
+### 3. Access the application
 
 | Resource | URL |
 |----------|-----|
@@ -71,13 +93,17 @@ Both `medical-billing-mysql` and `medical-billing-app` should show **healthy**.
 | Login page | http://localhost:8085/login |
 | Dashboard | http://localhost:8085/dashboard |
 
-### 3. Default users
+### 4. Log in
 
-| Username    | Password    | Role       |
-|-------------|-------------|------------|
-| admin       | admin123    | Admin      |
-| pharmacist  | pharma123   | Pharmacist |
-| cashier     | cashier123  | Cashier    |
+On **first startup only**, seed users are created when the passwords above are set in `.env`:
+
+| Username | Role | Password from `.env` |
+|----------|------|----------------------|
+| `admin` | Admin | `APP_ADMIN_PASSWORD` |
+| `pharmacist` | Pharmacist | `APP_PHARMACIST_PASSWORD` |
+| `cashier` | Cashier | `APP_CASHIER_PASSWORD` |
+
+Credentials are accepted only via the **login form (POST)** or **API request body** — never in the browser address bar or query string.
 
 ### Docker commands
 
@@ -123,25 +149,35 @@ docker inspect --format='{{.State.Health.Status}}' medical-billing-app
 | `app_uploads` | `/app/uploads` | Prescription and file uploads |
 | `app_backups` | `/app/backups` | Database backup files |
 
-Environment variables (set in `docker-compose.yml`):
+Environment variables (set in `.env` — never commit real values or pass them in URLs):
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `SPRING_PROFILES_ACTIVE` | `docker` | Activates `application-docker.properties` |
-| `SPRING_DATASOURCE_URL` | `jdbc:mysql://mysql:3306/medical_billing_db...` | Database connection |
-| `SPRING_DATASOURCE_USERNAME` | `root` | DB username |
-| `SPRING_DATASOURCE_PASSWORD` | `root` | DB password |
-| `APP_JWT_SECRET` | (see compose file) | JWT signing key |
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `SPRING_PROFILES_ACTIVE` | Docker only | Activates `application-docker.properties` |
+| `APP_JWT_SECRET` | Yes | JWT signing key (min. 32 characters) |
+| `MYSQL_ROOT_PASSWORD` | Yes (Docker) | MySQL root password |
+| `SPRING_DATASOURCE_USERNAME` | No | DB username (default: `root`) |
+| `APP_ADMIN_PASSWORD` | Yes (first seed) | Initial admin password |
+| `APP_PHARMACIST_PASSWORD` | Yes (first seed) | Initial pharmacist password |
+| `APP_CASHIER_PASSWORD` | Yes (first seed) | Initial cashier password |
+| `APP_SMS_API_KEY` | No | SMS provider API key |
+| `APP_WHATSAPP_API_TOKEN` | No | WhatsApp API token |
+
+> Security keys (`APP_JWT_SECRET`, API keys, DB passwords) are loaded from environment variables only. The application **rejects** any attempt to pass them as URL query parameters.
 
 ### Troubleshooting (Docker)
 
 | Symptom | Likely cause | Fix |
 |---------|--------------|-----|
+| App container exits on startup | Missing or short `APP_JWT_SECRET` | Set `APP_JWT_SECRET` in `.env` (32+ characters), then `docker compose up -d app` |
+| `MYSQL_ROOT_PASSWORD` variable is not set | No `.env` file | Run `cp .env.example .env` and fill in all required values |
+| `Access denied for user 'root'` after changing `.env` | MySQL volume still has the old password | Use the original password or reset: `docker compose down -v` then `docker compose up --build -d` |
 | Whitelabel Error Page (500) after code changes | Stale Docker image | `docker compose up --build -d app`, then hard-refresh the browser (Ctrl+Shift+R) |
 | `Connection refused` on port 8085 | App still starting or crashed | `docker compose logs -f app` and wait for `Started MedicalBillingApplication` |
 | Login works locally but not in Docker | Wrong port or old container | Use **8085** for Docker, **8080** for `mvn spring-boot:run` |
 | Database errors on first boot | MySQL not ready yet | App waits for MySQL healthcheck; retry after `docker compose ps` shows mysql **healthy** |
 | Fresh start with empty DB | Old volume data | `docker compose down -v` then `docker compose up --build -d` |
+| `400` on a URL with `?token=` or `?api_key=` | Security filter blocked query-string secret | Send tokens in `Authorization: Bearer` header; send credentials in POST body |
 
 To inspect the template inside the running container:
 
@@ -151,15 +187,15 @@ docker exec medical-billing-app unzip -p /app/app.jar BOOT-INF/classes/templates
 
 ### Notification configuration (optional)
 
-Add to `application.properties` or Docker environment:
+Add to `.env` or Docker environment (never in URLs or committed files):
 
 ```properties
 app.sms.enabled=true
 app.sms.api-url=https://your-sms-provider.com/api
-app.sms.api-key=your-api-key
+# APP_SMS_API_KEY is read from environment
 app.whatsapp.enabled=true
 app.whatsapp.api-url=https://your-whatsapp-api.com
-app.whatsapp.api-token=your-token
+# APP_WHATSAPP_API_TOKEN is read from environment
 ```
 
 ---
@@ -174,14 +210,22 @@ CREATE DATABASE medical_billing_db;
 
 Or run `database/schema.sql`.
 
-### 2. Configure database
+### 2. Configure database and secrets
 
-Edit `src/main/resources/application.properties`:
+Copy `.env.example` to `.env` and set values:
+
+```bash
+cp .env.example .env
+```
+
+Required for local run:
 
 ```properties
-spring.datasource.username=root
-spring.datasource.password=your_password
+APP_JWT_SECRET=your-long-random-secret-at-least-32-characters
+SPRING_DATASOURCE_PASSWORD=your_mysql_password
 ```
+
+Edit `src/main/resources/application.properties` datasource URL if needed, or override with environment variables.
 
 ### 3. Build and run
 
@@ -201,18 +245,19 @@ mvn spring-boot:run
 
 ```
 MedicalBillingSystem/
+├── .env.example               # Template for required secrets (copy to .env)
 ├── Dockerfile                 # Multi-stage build (JDK 21 → JRE 21, healthcheck)
-├── docker-compose.yml         # App + MySQL stack (host port 8085)
+├── docker-compose.yml         # App + MySQL stack (host port 8085, reads .env)
 ├── .dockerignore              # Excludes target/, docs, and dev files from build context
 ├── pom.xml
 ├── src/main/java/com/medicalbilling/
-│   ├── config/                # Security, Web MVC, Data initializer
+│   ├── config/                # Security, Web MVC, Data initializer, secret validation
 │   ├── controller/            # REST API & Thymeleaf web controllers
 │   ├── dto/                   # Data transfer objects
 │   ├── entity/                # JPA entities
 │   ├── exception/             # Global exception handling
 │   ├── repository/            # Spring Data JPA repositories
-│   ├── security/              # JWT filter, UserDetailsService
+│   ├── security/              # JWT filter, query-string secret blocking
 │   ├── service/               # Business logic layer
 │   └── util/                  # JWT, code generators
 ├── src/main/resources/
@@ -232,7 +277,7 @@ MedicalBillingSystem/
 ```bash
 curl -X POST http://localhost:8085/api/auth/login \
   -H "Content-Type: application/json" \
-  -d "{\"username\":\"admin\",\"password\":\"admin123\"}"
+  -d "{\"username\":\"<username>\",\"password\":\"<password>\"}"
 ```
 
 **Local (port 8080):**
@@ -240,21 +285,23 @@ curl -X POST http://localhost:8085/api/auth/login \
 ```bash
 curl -X POST http://localhost:8080/api/auth/login \
   -H "Content-Type: application/json" \
-  -d "{\"username\":\"admin\",\"password\":\"admin123\"}"
+  -d "{\"username\":\"<username>\",\"password\":\"<password>\"}"
 ```
 
-Use the returned JWT token:
+Use the returned JWT token in the **Authorization header** (not the URL):
 
 ```bash
 curl http://localhost:8085/api/dashboard \
   -H "Authorization: Bearer <token>"
 ```
 
+> Sending `username`, `password`, `token`, `jwt`, `api_key`, `secret`, or similar values as URL query parameters is **blocked** by the application. Use POST body or `Authorization` header only.
+
 ## Deployment
 
 ### Docker production notes
 
-- Change `APP_JWT_SECRET` and MySQL passwords in `docker-compose.yml` before deploying
+- Set all secrets in `.env` (`APP_JWT_SECRET`, `MYSQL_ROOT_PASSWORD`, user passwords) — never hardcode them in `docker-compose.yml` or URLs
 - Do not expose the MySQL service to the host in production (it is internal to the Docker network by default)
 - Use named volumes for persistent data (`mysql_data`, `app_uploads`, `app_backups`)
 - Put a reverse proxy (Nginx/Traefik) in front for HTTPS
@@ -263,15 +310,19 @@ curl http://localhost:8085/api/dashboard \
 
 ### JAR deployment
 
+Set environment variables before starting (same keys as `.env.example`):
+
 ```bash
 mvn clean package -DskipTests
+export APP_JWT_SECRET="your-long-random-secret-at-least-32-characters"
+export SPRING_DATASOURCE_PASSWORD="your_mysql_password"
 java -jar target/medical-billing-system-1.0.0.jar
 ```
 
 ### Production checklist
 
-- Change JWT secret in `application.properties` or Docker env vars
-- Configure MySQL credentials
+- Set `APP_JWT_SECRET` (32+ characters) via environment — not in source code or URLs
+- Configure MySQL credentials via `.env` / environment variables
 - Set up SMTP for email notifications
 - Enable HTTPS
 - Configure `mysqldump` for production backups

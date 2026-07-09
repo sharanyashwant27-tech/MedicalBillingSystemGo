@@ -31,6 +31,17 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         String token = null;
         String username = null;
 
+        // Never accept JWT or API keys from URL query parameters
+        if (request.getParameter("token") != null
+                || request.getParameter("jwt") != null
+                || request.getParameter("access_token") != null
+                || request.getParameter("api_key") != null
+                || request.getParameter("apikey") != null) {
+            response.sendError(HttpServletResponse.SC_BAD_REQUEST,
+                    "Security tokens must not be sent in the URL.");
+            return;
+        }
+
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
             token = authHeader.substring(7);
             try {

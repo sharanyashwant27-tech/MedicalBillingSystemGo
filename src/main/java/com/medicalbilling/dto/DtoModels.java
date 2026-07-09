@@ -48,6 +48,17 @@ public class DtoModels {
     }
 
     @Data @Builder @NoArgsConstructor @AllArgsConstructor
+    public static class UserUpdateRequest {
+        @NotNull private Long userId;
+        @NotBlank private String username;
+        private String password;
+        @NotBlank private String fullName;
+        private String email;
+        private String phone;
+        @NotEmpty private List<RoleType> roles;
+    }
+
+    @Data @Builder @NoArgsConstructor @AllArgsConstructor
     public static class CategoryRequest {
         @NotBlank private String name;
         private String description;

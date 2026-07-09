@@ -147,9 +147,9 @@ public class FeatureApiController {
         return ResponseEntity.ok(auditLogService.getRecent(limit));
     }
 
-    @GetMapping("/audit-logs/user/{username}")
-    public ResponseEntity<List<AuditLog>> getAuditLogsByUser(@PathVariable String username) {
-        return ResponseEntity.ok(auditLogService.getByUsername(username));
+    @PostMapping("/audit-logs/by-user")
+    public ResponseEntity<List<AuditLog>> getAuditLogsByUser(@RequestBody Map<String, String> body) {
+        return ResponseEntity.ok(auditLogService.getByUsername(body.get("username")));
     }
 
     @GetMapping("/audit-logs/range")

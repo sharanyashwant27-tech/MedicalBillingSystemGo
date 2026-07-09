@@ -10,10 +10,12 @@ Login and receive JWT token.
 **Request:**
 ```json
 {
-  "username": "admin",
-  "password": "admin123"
+  "username": "<username>",
+  "password": "<password>"
 }
 ```
+
+> Credentials and security keys must be sent in the JSON body or headers. Query-string authentication is rejected.
 
 **Response:**
 ```json
@@ -134,11 +136,11 @@ Export formats: excel, csv, pdf
 |--------|----------|-------------|
 | GET | /api/users | List users |
 | POST | /api/users | Create user |
-| PUT | /api/users/{id} | Update user |
-| DELETE | /api/users/{id} | Delete user |
-| POST | /api/users/{id}/reset-password | Reset password |
-| POST | /api/users/{id}/lock | Lock user |
-| POST | /api/users/{id}/unlock | Unlock user |
+| PUT | /api/users/update | Update user (userId in JSON body) |
+| POST | /api/users/delete | Delete user (userId in JSON body) |
+| POST | /api/users/reset-password | Reset password (userId + password in JSON body) |
+| POST | /api/users/lock | Lock user (userId in JSON body) |
+| POST | /api/users/unlock | Unlock user (userId in JSON body) |
 
 ## Branches
 
@@ -195,7 +197,7 @@ Lookup medicine by barcode or QR code value.
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | GET | /api/audit-logs | Recent audit logs |
-| GET | /api/audit-logs/user/{username} | Logs by user |
+| POST | /api/audit-logs/by-user | Logs by user (username in JSON body) |
 | GET | /api/audit-logs/range | Logs by date range |
 
 ## Backups

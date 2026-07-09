@@ -1,5 +1,6 @@
 package com.medicalbilling.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 import org.springframework.security.core.GrantedAuthority;
@@ -29,6 +30,7 @@ public class User implements UserDetails {
     private String username;
 
     @Column(nullable = false)
+    @JsonIgnore
     private String password;
 
     @Column(nullable = false, length = 100)
@@ -70,6 +72,12 @@ public class User implements UserDetails {
     @PreUpdate
     public void preUpdate() {
         this.updatedAt = LocalDateTime.now();
+    }
+
+    @Override
+    @JsonIgnore
+    public String getPassword() {
+        return password;
     }
 
     @Override

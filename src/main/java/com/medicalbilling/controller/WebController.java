@@ -24,11 +24,8 @@ public class WebController {
     private final WebFeatureServices featureServices;
 
     @GetMapping("/login")
-    public String login(@RequestParam(required = false) String error,
-                        @RequestParam(required = false) String logout,
-                        Model model) {
+    public String login(@RequestParam(required = false) String error, Model model) {
         if (error != null) model.addAttribute("error", "Invalid username or password");
-        if (logout != null) model.addAttribute("message", "You have been logged out successfully");
         return "login";
     }
 

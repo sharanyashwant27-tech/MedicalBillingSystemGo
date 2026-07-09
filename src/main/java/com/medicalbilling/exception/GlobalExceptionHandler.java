@@ -20,12 +20,12 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(ResourceNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleNotFound(ResourceNotFoundException ex, HttpServletRequest request) {
-        return buildResponse(ex.getStatus(), ex.getMessage(), request.getRequestURI(), null);
+        return buildResponse(ex.getStatus(), ex.getMessage(), request, null);
     }
 
     @ExceptionHandler(BusinessException.class)
     public ResponseEntity<ErrorResponse> handleBusiness(BusinessException ex, HttpServletRequest request) {
-        return buildResponse(ex.getStatus(), ex.getMessage(), request.getRequestURI(), null);
+        return buildResponse(ex.getStatus(), ex.getMessage(), request, null);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
@@ -34,31 +34,35 @@ public class GlobalExceptionHandler {
         for (FieldError fieldError : ex.getBindingResult().getFieldErrors()) {
             errors.put(fieldError.getField(), fieldError.getDefaultMessage());
         }
-        return buildResponse(HttpStatus.BAD_REQUEST, "Validation failed", request.getRequestURI(), errors);
+        return buildResponse(HttpStatus.BAD_REQUEST, "Validation failed", request, errors);
     }
 
     @ExceptionHandler({BadCredentialsException.class, UsernameNotFoundException.class})
     public ResponseEntity<ErrorResponse> handleAuth(Exception ex, HttpServletRequest request) {
-        return buildResponse(HttpStatus.UNAUTHORIZED, "Invalid username or password", request.getRequestURI(), null);
+        return buildResponse(HttpStatus.UNAUTHORIZED, "Invalid username or password", request, null);
     }
 
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<ErrorResponse> handleAccessDenied(AccessDeniedException ex, HttpServletRequest request) {
-        return buildResponse(HttpStatus.FORBIDDEN, "Access denied", request.getRequestURI(), null);
+        return buildResponse(HttpStatus.FORBIDDEN, "Access denied", request, null);
     }
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleGeneral(Exception ex, HttpServletRequest request) {
-        return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR, ex.getMessage(), request.getRequestURI(), null);
+        return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR, "An unexpected error occurred", request, null);
     }
 
-    private ResponseEntity<ErrorResponse> buildResponse(HttpStatus status, String message, String path, Map<String, String> validationErrors) {
+    private String safePath(HttpServletRequest request) {
+        return request.getServletPath();
+    }
+
+    private ResponseEntity<ErrorResponse> buildResponse(HttpStatus status, String message, HttpServletRequest request, Map<String, String> validationErrors) {
         ErrorResponse error = ErrorResponse.builder()
                 .timestamp(LocalDateTime.now())
                 .status(status.value())
                 .error(status.getReasonPhrase())
                 .message(message)
-                .path(path)
+                .path(safePath(request))
                 .validationErrors(validationErrors)
                 .build();
         return new ResponseEntity<>(error, status);

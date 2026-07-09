@@ -30,7 +30,7 @@ public class BackupService {
     @Value("${spring.datasource.username:root}")
     private String dbUsername;
 
-    @Value("${spring.datasource.password:root}")
+    @Value("${spring.datasource.password:}")
     private String dbPassword;
 
     public String createBackup() throws IOException {
@@ -76,10 +76,10 @@ public class BackupService {
     private void executeMysqldump(String dbName, Path target) throws IOException {
         String host = extractHost(datasourceUrl);
         List<String> command = List.of(
-                "mysqldump", "-h", host, "-u", dbUsername,
-                "--password=" + dbPassword, dbName
+                "mysqldump", "-h", host, "-u", dbUsername, dbName
         );
         ProcessBuilder pb = new ProcessBuilder(command);
+        pb.environment().put("MYSQL_PWD", dbPassword);
         pb.redirectOutput(target.toFile());
         pb.redirectError(ProcessBuilder.Redirect.INHERIT);
         try {

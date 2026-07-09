@@ -25,10 +25,14 @@
                                 <span th:if="${!u.accountNonLocked}" class="badge bg-danger">Locked</span>
                             </td>
                             <td>
-                                <button class="btn btn-sm btn-outline-warning" th:if="${u.accountNonLocked}" th:onclick="'lockUser(' + ${u.id} + ')'"><i class="bi bi-lock"></i></button>
-                                <button class="btn btn-sm btn-outline-success" th:if="${!u.accountNonLocked}" th:onclick="'unlockUser(' + ${u.id} + ')'"><i class="bi bi-unlock"></i></button>
-                                <button class="btn btn-sm btn-outline-primary" th:onclick="'resetPassword(' + ${u.id} + ')'"><i class="bi bi-key"></i></button>
-                                <button class="btn btn-sm btn-outline-danger" th:if="${u.username != 'admin'}" th:onclick="'deleteUser(' + ${u.id} + ')'"><i class="bi bi-trash"></i></button>
+                                <button type="button" class="btn btn-sm btn-outline-warning lock-user-btn" th:if="${u.accountNonLocked}"
+                                        th:data-user-id="${u.id}"><i class="bi bi-lock"></i></button>
+                                <button type="button" class="btn btn-sm btn-outline-success unlock-user-btn" th:if="${!u.accountNonLocked}"
+                                        th:data-user-id="${u.id}"><i class="bi bi-unlock"></i></button>
+                                <button type="button" class="btn btn-sm btn-outline-primary reset-password-btn"
+                                        th:data-user-id="${u.id}"><i class="bi bi-key"></i></button>
+                                <button type="button" class="btn btn-sm btn-outline-danger delete-user-btn" th:if="${u.username != 'admin'}"
+                                        th:data-user-id="${u.id}"><i class="bi bi-trash"></i></button>
                             </td>
                         </tr>
                         </tbody>
@@ -55,6 +59,22 @@
         <div class="modal-footer">
             <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
             <button class="btn btn-success" onclick="saveUser()">Save</button>
+        </div>
+    </div></div>
+</div>
+<div class="modal fade" id="resetPasswordModal" tabindex="-1">
+    <div class="modal-dialog"><div class="modal-content">
+        <div class="modal-header"><h5 class="modal-title">Reset Password</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+        <div class="modal-body">
+            <input type="hidden" id="resetUserId">
+            <div class="mb-3">
+                <label class="form-label">New Password *</label>
+                <input type="password" class="form-control" id="newPassword" required autocomplete="new-password">
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            <button class="btn btn-success" onclick="submitResetPassword()">Reset</button>
         </div>
     </div></div>
 </div>

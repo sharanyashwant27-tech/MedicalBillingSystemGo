@@ -1,15 +1,16 @@
 services:
+  # Requires a .env file (copy from .env.example). Docker Compose loads it automatically.
   mysql:
     image: mysql:8.0
     container_name: medical-billing-mysql
     restart: unless-stopped
     environment:
-      MYSQL_ROOT_PASSWORD: root
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
       MYSQL_DATABASE: medical_billing_db
     volumes:
       - mysql_data:/var/lib/mysql
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-proot"]
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -uroot -p\"$$MYSQL_ROOT_PASSWORD\" || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -32,9 +33,14 @@ services:
     environment:
       SPRING_PROFILES_ACTIVE: docker
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/medical_billing_db?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
-      SPRING_DATASOURCE_USERNAME: root
-      SPRING_DATASOURCE_PASSWORD: root
-      APP_JWT_SECRET: MedicalBillingSystemSecretKey2024EnterpriseLevelSecurityKeyForJWTTokenGeneration
+      SPRING_DATASOURCE_USERNAME: ${SPRING_DATASOURCE_USERNAME:-root}
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      APP_JWT_SECRET: ${APP_JWT_SECRET}
+      APP_ADMIN_PASSWORD: ${APP_ADMIN_PASSWORD}
+      APP_PHARMACIST_PASSWORD: ${APP_PHARMACIST_PASSWORD}
+      APP_CASHIER_PASSWORD: ${APP_CASHIER_PASSWORD}
+      APP_SMS_API_KEY: ${APP_SMS_API_KEY:-}
+      APP_WHATSAPP_API_TOKEN: ${APP_WHATSAPP_API_TOKEN:-}
     volumes:
       - app_uploads:/app/uploads
       - app_backups:/app/backups
