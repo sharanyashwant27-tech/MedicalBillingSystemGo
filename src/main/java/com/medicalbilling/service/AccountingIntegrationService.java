@@ -2,8 +2,6 @@ package com.medicalbilling.service;
 
 import com.medicalbilling.entity.*;
 import com.medicalbilling.repository.AccountingEntryRepository;
-import com.medicalbilling.repository.NotificationLogRepository;
-import com.medicalbilling.util.CodeGenerator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -28,7 +26,7 @@ public class AccountingIntegrationService {
     @Transactional
     public AccountingEntry recordSale(Sale sale) {
         if (!accountingEnabled) return null;
-        AccountingEntry entry = AccountingEntry.builder()
+        AccountingEntry entry = Objects.requireNonNull(AccountingEntry.builder()
                 .entryNumber("ACC-" + System.currentTimeMillis())
                 .entryType(AccountingEntryType.SALE)
                 .branch(sale.getBranch())
@@ -38,14 +36,14 @@ public class AccountingIntegrationService {
                 .entryDate(LocalDate.now())
                 .referenceId(sale.getId())
                 .referenceType("SALE")
-                .build();
+                .build());
         return accountingEntryRepository.save(entry);
     }
 
     @Transactional
     public AccountingEntry recordPurchase(Purchase purchase) {
         if (!accountingEnabled) return null;
-        AccountingEntry entry = AccountingEntry.builder()
+        AccountingEntry entry = Objects.requireNonNull(AccountingEntry.builder()
                 .entryNumber("ACC-" + System.currentTimeMillis())
                 .entryType(AccountingEntryType.PURCHASE)
                 .description("Purchase " + purchase.getInvoiceNumber())
@@ -54,7 +52,7 @@ public class AccountingIntegrationService {
                 .entryDate(purchase.getPurchaseDate())
                 .referenceId(purchase.getId())
                 .referenceType("PURCHASE")
-                .build();
+                .build());
         return accountingEntryRepository.save(entry);
     }
 
@@ -71,8 +69,12 @@ public class AccountingIntegrationService {
     @Transactional
     public Map<String, Object> exportForAccounting(LocalDate start, LocalDate end, String username) {
         List<AccountingEntry> entries = getEntries(start, end);
-        BigDecimal totalDebit = entries.stream().map(AccountingEntry::getDebitAmount).reduce(BigDecimal.ZERO, BigDecimal::add);
-        BigDecimal totalCredit = entries.stream().map(AccountingEntry::getCreditAmount).reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal totalDebit = entries.stream()
+                .map(entry -> entry.getDebitAmount())
+                .reduce(BigDecimal.ZERO, (left, right) -> left.add(right));
+        BigDecimal totalCredit = entries.stream()
+                .map(entry -> entry.getCreditAmount())
+                .reduce(BigDecimal.ZERO, (left, right) -> left.add(right));
 
         entries.forEach(e -> e.setSynced(true));
         accountingEntryRepository.saveAll(entries);

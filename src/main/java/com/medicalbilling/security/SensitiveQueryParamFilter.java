@@ -36,7 +36,7 @@ public class SensitiveQueryParamFilter extends OncePerRequestFilter {
     protected void doFilterInternal(@NonNull HttpServletRequest request,
                                     @NonNull HttpServletResponse response,
                                     @NonNull FilterChain filterChain) throws ServletException, IOException {
-        if (hasBlockedQueryParam(request)) {
+        if (hasBlockedQueryParam(request.getQueryString())) {
             response.sendError(HttpServletResponse.SC_BAD_REQUEST,
                     "Security keys and credentials must not be sent in the URL. Use POST body or headers.");
             return;
@@ -45,13 +45,7 @@ public class SensitiveQueryParamFilter extends OncePerRequestFilter {
         filterChain.doFilter(request, response);
     }
 
-    private boolean hasBlockedQueryParam(HttpServletRequest request) {
-        boolean blockedByName = request.getParameterMap().keySet().stream()
-                .anyMatch(name -> BLOCKED_PARAMS.contains(name.toLowerCase(Locale.ROOT)));
-        if (blockedByName) {
-            return true;
-        }
-        String queryString = request.getQueryString();
+    private boolean hasBlockedQueryParam(String queryString) {
         if (queryString == null || queryString.isBlank()) {
             return false;
         }

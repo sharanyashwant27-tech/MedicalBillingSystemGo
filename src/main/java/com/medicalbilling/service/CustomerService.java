@@ -13,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Service
@@ -54,7 +55,7 @@ public class CustomerService {
 
     @Transactional
     public DtoModels.CustomerResponse create(DtoModels.CustomerRequest request, String username) {
-        Customer saved = customerRepository.save(toEntity(request));
+        Customer saved = customerRepository.save(Objects.requireNonNull(toEntity(request)));
         auditService.log("CREATE", "Customer", saved.getId(), username, "Created customer: " + saved.getCustomerName());
         return toResponse(saved);
     }
@@ -63,7 +64,7 @@ public class CustomerService {
     public DtoModels.CustomerResponse update(Long id, DtoModels.CustomerRequest request, String username) {
         Customer customer = findCustomer(id);
         updateEntity(customer, request);
-        Customer saved = customerRepository.save(customer);
+        Customer saved = customerRepository.save(Objects.requireNonNull(customer));
         auditService.log("UPDATE", "Customer", saved.getId(), username, "Updated customer: " + saved.getCustomerName());
         return toResponse(saved);
     }
@@ -71,17 +72,17 @@ public class CustomerService {
     @Transactional
     public void delete(Long id, String username) {
         Customer customer = findCustomer(id);
-        customerRepository.delete(customer);
+        customerRepository.delete(Objects.requireNonNull(customer));
         auditService.log("DELETE", "Customer", id, username, "Deleted customer: " + customer.getCustomerName());
     }
 
     Customer findCustomer(Long id) {
-        return customerRepository.findById(id)
+        return customerRepository.findById(Objects.requireNonNull(id))
                 .orElseThrow(() -> new ResourceNotFoundException("Customer not found with id: " + id));
     }
 
     private Customer toEntity(DtoModels.CustomerRequest request) {
-        return Customer.builder()
+        return Objects.requireNonNull(Customer.builder()
                 .customerName(request.getCustomerName())
                 .phone(request.getPhone())
                 .email(request.getEmail())
@@ -90,7 +91,7 @@ public class CustomerService {
                 .gender(request.getGender())
                 .doctorName(request.getDoctorName())
                 .gstNumber(request.getGstNumber())
-                .build();
+                .build());
     }
 
     private void updateEntity(Customer customer, DtoModels.CustomerRequest request) {

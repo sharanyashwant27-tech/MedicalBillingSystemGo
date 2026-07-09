@@ -8,6 +8,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
+import java.util.Objects;
+
 @Service
 @RequiredArgsConstructor
 public class AuditService {
@@ -21,7 +23,7 @@ public class AuditService {
             HttpServletRequest request = attrs.getRequest();
             ip = request.getRemoteAddr();
         }
-        auditLogRepository.save(AuditLog.builder()
+        AuditLog entry = Objects.requireNonNull(AuditLog.builder()
                 .action(action)
                 .entityType(entityType)
                 .entityId(entityId)
@@ -29,5 +31,6 @@ public class AuditService {
                 .details(details)
                 .ipAddress(ip)
                 .build());
+        auditLogRepository.save(entry);
     }
 }

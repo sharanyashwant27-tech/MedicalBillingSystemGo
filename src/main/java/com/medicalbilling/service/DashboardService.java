@@ -27,7 +27,6 @@ public class DashboardService {
     private final CustomerRepository customerRepository;
     private final SupplierRepository supplierRepository;
     private final PaymentRepository paymentRepository;
-    private final MedicineService medicineService;
 
     @Transactional(readOnly = true)
     public DtoModels.DashboardResponse getDashboardData() {
@@ -38,12 +37,6 @@ public class DashboardService {
         if (todaySales == null) todaySales = BigDecimal.ZERO;
 
         List<Sale> todaySaleList = saleRepository.findSalesBetweenWithDetails(startOfDay, endOfDay);
-        BigDecimal todayCost = BigDecimal.ZERO;
-        for (Sale sale : todaySaleList) {
-            sale.getItems().forEach(item -> {
-                // cost calculated in profit service context
-            });
-        }
         BigDecimal todayProfit = calculateTodayProfit(todaySaleList);
 
         long lowStock = medicineRepository.findAll().stream()

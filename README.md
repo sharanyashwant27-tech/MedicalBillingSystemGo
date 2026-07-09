@@ -27,10 +27,12 @@ Enterprise-level Medical Shop Billing System built with **Java 21**, **Spring Bo
 - **Automated backups** — Scheduled daily backups + manual trigger (mysqldump when available)
 
 ### UI & DevOps
+- **MediBill branding** — Logo + name in the sidebar (links to dashboard on every page); same branding on login/logout pages
 - Dark mode, dashboard charts, notification alerts
 - Sidebar logout with dedicated logout-success page
+- CSRF-protected login and logout forms
 - Environment-based secrets (JWT, DB, API keys) — never in URLs or source code
-- URL query-string blocking for credentials and security keys
+- URL query-string blocking for credentials and security keys (POST body and headers still work)
 - Docker & Docker Compose deployment (port **8085** on host → 8080 in container)
 - Unit and integration tests (8+ test classes)
 
@@ -95,15 +97,19 @@ Both `medical-billing-mysql` and `medical-billing-app` should show **healthy**.
 
 ### 4. Log in
 
-On **first startup only**, seed users are created when the passwords above are set in `.env`:
+Demo users are created on startup. Passwords come from `.env` (defaults shown in `.env.example`):
 
-| Username | Role | Password from `.env` |
-|----------|------|----------------------|
-| `admin` | Admin | `APP_ADMIN_PASSWORD` |
-| `pharmacist` | Pharmacist | `APP_PHARMACIST_PASSWORD` |
-| `cashier` | Cashier | `APP_CASHIER_PASSWORD` |
+| Username | Role | Default password (if unset in `.env`) |
+|----------|------|----------------------------------------|
+| `admin` | Admin | `admin123` |
+| `pharmacist` | Pharmacist | `pharma123` |
+| `cashier` | Cashier | `cashier123` |
 
-Credentials are accepted only via the **login form (POST)** or **API request body** — never in the browser address bar or query string.
+On **first startup**, set `APP_ADMIN_PASSWORD`, `APP_PHARMACIST_PASSWORD`, and `APP_CASHIER_PASSWORD` in `.env` to your chosen values. On every restart, `DataInitializer` syncs these users to match `.env`.
+
+Credentials are accepted only via the **login form (POST with CSRF token)** or **API request body** — never in the browser address bar or query string.
+
+After login, open the **Dashboard** at http://localhost:8085/dashboard. The **MediBill** logo in the left sidebar links back to the dashboard from any page.
 
 ### Docker commands
 
@@ -138,7 +144,7 @@ docker inspect --format='{{.State.Health.Status}}' medical-billing-app
 
 | Service | Container name | Host port | Description |
 |---------|----------------|-----------|-------------|
-| `app` | medical-billing-app | **8085** → 8080 | Spring Boot application (`SPRING_PROFILES_ACTIVE=docker`) |
+| `app` | medical-billing-app | **8085** → 8080 | Spring Boot app (`medical-billing-system:1.0.0`, profile `docker`) |
 | `mysql` | medical-billing-mysql | (internal only) | MySQL 8.0 database |
 
 **Persistent volumes**
@@ -173,15 +179,21 @@ Environment variables (set in `.env` — never commit real values or pass them i
 | `MYSQL_ROOT_PASSWORD` variable is not set | No `.env` file | Run `cp .env.example .env` and fill in all required values |
 | `Access denied for user 'root'` after changing `.env` | MySQL volume still has the old password | Use the original password or reset: `docker compose down -v` then `docker compose up --build -d` |
 | Whitelabel Error Page (500) after code changes | Stale Docker image | `docker compose up --build -d app`, then hard-refresh the browser (Ctrl+Shift+R) |
+| Logo or UI changes not visible | Browser or image cache | `docker compose up --build -d app`, then hard-refresh (Ctrl+F5) |
+| Login returns `400 Bad Request` | Missing CSRF token or blocked query params | Use the login form at `/login`; do not append `?username=` or `?password=` to the URL |
 | `Connection refused` on port 8085 | App still starting or crashed | `docker compose logs -f app` and wait for `Started MedicalBillingApplication` |
 | Login works locally but not in Docker | Wrong port or old container | Use **8085** for Docker, **8080** for `mvn spring-boot:run` |
 | Database errors on first boot | MySQL not ready yet | App waits for MySQL healthcheck; retry after `docker compose ps` shows mysql **healthy** |
 | Fresh start with empty DB | Old volume data | `docker compose down -v` then `docker compose up --build -d` |
 | `400` on a URL with `?token=` or `?api_key=` | Security filter blocked query-string secret | Send tokens in `Authorization: Bearer` header; send credentials in POST body |
 
-To inspect the template inside the running container:
+To inspect assets inside the running container:
 
 ```bash
+# Verify MediBill logo is packaged in the image
+docker exec medical-billing-app unzip -l /app/app.jar | grep medibill-logo
+
+# Inspect a Thymeleaf template
 docker exec medical-billing-app unzip -p /app/app.jar BOOT-INF/classes/templates/categories.html
 ```
 
@@ -264,8 +276,9 @@ MedicalBillingSystem/
 │   ├── application.properties
 │   ├── application-docker.properties
 │   ├── static/css/            # Stylesheets
+│   ├── static/images/         # MediBill logo (medibill-logo.svg)
 │   ├── static/js/             # JavaScript modules
-│   └── templates/             # Thymeleaf HTML pages
+│   └── templates/             # Thymeleaf HTML pages (fragments/layout.html sidebar brand)
 ├── database/                  # SQL schema and seed data
 └── documentation/             # API docs and user manual
 ```
@@ -306,6 +319,7 @@ curl http://localhost:8085/api/dashboard \
 - Use named volumes for persistent data (`mysql_data`, `app_uploads`, `app_backups`)
 - Put a reverse proxy (Nginx/Traefik) in front for HTTPS
 - Rebuild the image as part of your deploy pipeline: `docker compose build app && docker compose up -d app`
+- Image tag: `medical-billing-system:1.0.0` (see `docker-compose.yml`)
 - Monitor health: `docker compose ps` — both services should report **healthy**
 
 ### JAR deployment

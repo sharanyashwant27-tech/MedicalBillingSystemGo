@@ -3,8 +3,10 @@
 <body>
 <nav th:fragment="sidebar" class="sidebar" id="sidebar">
     <div class="sidebar-header">
-        <i class="bi bi-heart-pulse-fill text-success"></i>
-        <span>MediBill</span>
+        <a th:fragment="brand" th:href="@{/dashboard}" class="sidebar-brand" title="Go to Dashboard">
+            <img th:src="@{/images/medibill-logo.svg}" alt="MediBill logo" class="brand-logo" width="40" height="40">
+            <span class="brand-name">MediBill</span>
+        </a>
     </div>
     <ul class="sidebar-nav">
         <li><a th:href="@{/dashboard}" th:classappend="${activePage == 'dashboard'} ? 'active' : ''"><i class="bi bi-speedometer2"></i> Dashboard</a></li>
@@ -26,6 +28,7 @@
         <li><a th:href="@{/settings}" th:classappend="${activePage == 'settings'} ? 'active' : ''"><i class="bi bi-gear"></i> Settings</a></li>
         <li class="sidebar-logout">
             <form th:action="@{/logout}" method="post">
+                <input type="hidden" th:if="${_csrf != null}" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
                 <button type="submit" class="sidebar-logout-btn">
                     <i class="bi bi-box-arrow-right"></i> Logout
                 </button>
@@ -55,6 +58,7 @@
                 <li><hr class="dropdown-divider"></li>
                 <li>
                     <form th:action="@{/logout}" method="post">
+                        <input type="hidden" th:if="${_csrf != null}" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
                         <button type="submit" class="dropdown-item text-danger"><i class="bi bi-box-arrow-right"></i> Logout</button>
                     </form>
                 </li>

@@ -8,7 +8,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.GrantedAuthority;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -26,8 +25,8 @@ public class AuthService {
         );
         User user = (User) authentication.getPrincipal();
         String token = jwtUtil.generateToken(user);
-        List<String> roles = user.getAuthorities().stream()
-                .map(GrantedAuthority::getAuthority)
+        List<String> roles = user.getRoles().stream()
+                .map(role -> role.getName().name())
                 .toList();
 
         return JwtResponse.builder()

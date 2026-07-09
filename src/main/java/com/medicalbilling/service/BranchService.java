@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
@@ -29,7 +30,7 @@ public class BranchService {
 
     @Transactional(readOnly = true)
     public Branch getById(Long id) {
-        return branchRepository.findById(id)
+        return branchRepository.findById(Objects.requireNonNull(id))
                 .orElseThrow(() -> new ResourceNotFoundException("Branch not found: " + id));
     }
 

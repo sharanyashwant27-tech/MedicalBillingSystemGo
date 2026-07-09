@@ -78,51 +78,47 @@ public class DataInitializer implements CommandLineRunner {
     }
 
     private void initializeAdminUser(Branch branch) {
-        if (!userRepository.existsByUsername("admin")) {
-            if (!isSeedPasswordConfigured()) {
-                log.warn("Skipping default user seeding. Set APP_ADMIN_PASSWORD, APP_PHARMACIST_PASSWORD, and APP_CASHIER_PASSWORD (or app.seed.*-password properties).");
-                return;
-            }
+        String adminPwd = resolveSeedPassword(adminPassword, "admin123");
+        String pharmaPwd = resolveSeedPassword(pharmacistPassword, "pharma123");
+        String cashierPwd = resolveSeedPassword(cashierPassword, "cashier123");
 
-            Role adminRole = roleRepository.findByName(RoleType.ROLE_ADMIN).orElseThrow();
-            Role pharmacistRole = roleRepository.findByName(RoleType.ROLE_PHARMACIST).orElseThrow();
-            Role cashierRole = roleRepository.findByName(RoleType.ROLE_CASHIER).orElseThrow();
+        Role adminRole = roleRepository.findByName(RoleType.ROLE_ADMIN).orElseThrow();
+        Role pharmacistRole = roleRepository.findByName(RoleType.ROLE_PHARMACIST).orElseThrow();
+        Role cashierRole = roleRepository.findByName(RoleType.ROLE_CASHIER).orElseThrow();
 
-            User admin = Objects.requireNonNull(User.builder()
-                    .username("admin")
-                    .password(passwordEncoder.encode(adminPassword))
-                    .fullName("System Administrator")
-                    .email("admin@medicalshop.com")
-                    .phone("9876543210")
-                    .roles(Set.of(adminRole))
-                    .branch(branch)
-                    .build());
-            userRepository.save(admin);
-
-            User pharmacist = Objects.requireNonNull(User.builder()
-                    .username("pharmacist")
-                    .password(passwordEncoder.encode(pharmacistPassword))
-                    .fullName("John Pharmacist")
-                    .email("pharmacist@medicalshop.com")
-                    .roles(Set.of(pharmacistRole))
-                    .branch(branch)
-                    .build());
-            userRepository.save(pharmacist);
-
-            User cashier = Objects.requireNonNull(User.builder()
-                    .username("cashier")
-                    .password(passwordEncoder.encode(cashierPassword))
-                    .fullName("Jane Cashier")
-                    .email("cashier@medicalshop.com")
-                    .roles(Set.of(cashierRole))
-                    .branch(branch)
-                    .build());
-            userRepository.save(cashier);
-        }
+        createOrUpdateDemoUser("admin", adminPwd, "System Administrator", "admin@medicalshop.com",
+                "9876543210", Set.of(adminRole), branch);
+        createOrUpdateDemoUser("pharmacist", pharmaPwd, "John Pharmacist", "pharmacist@medicalshop.com",
+                null, Set.of(pharmacistRole), branch);
+        createOrUpdateDemoUser("cashier", cashierPwd, "Jane Cashier", "cashier@medicalshop.com",
+                null, Set.of(cashierRole), branch);
     }
 
-    private boolean isSeedPasswordConfigured() {
-        return isPresent(adminPassword) && isPresent(pharmacistPassword) && isPresent(cashierPassword);
+    private String resolveSeedPassword(String configured, String defaultPassword) {
+        return isPresent(configured) ? configured : defaultPassword;
+    }
+
+    private void createOrUpdateDemoUser(String username, String password, String fullName, String email,
+                                        String phone, Set<Role> roles, Branch branch) {
+        userRepository.findByUsername(username).ifPresentOrElse(user -> {
+            user.setPassword(passwordEncoder.encode(password));
+            user.setFullName(fullName);
+            user.setEmail(email);
+            user.setPhone(phone);
+            user.setRoles(roles);
+            user.setBranch(branch);
+            user.setEnabled(true);
+            user.setAccountNonLocked(true);
+            userRepository.save(user);
+        }, () -> userRepository.save(Objects.requireNonNull(User.builder()
+                .username(username)
+                .password(passwordEncoder.encode(password))
+                .fullName(fullName)
+                .email(email)
+                .phone(phone)
+                .roles(roles)
+                .branch(branch)
+                .build())));
     }
 
     private boolean isPresent(String value) {

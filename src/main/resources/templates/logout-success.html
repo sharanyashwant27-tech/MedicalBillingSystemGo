@@ -6,10 +6,10 @@
 <div class="login-container">
     <div class="login-card animate-fade-in">
         <div class="login-header">
-            <div class="login-logo">
-                <i class="bi bi-check-circle-fill text-success"></i>
-            </div>
-            <h2>Logged Out Successfully</h2>
+            <a th:href="@{/login}" class="login-brand" title="MediBill">
+                <img th:src="@{/images/medibill-logo.svg}" alt="MediBill" class="brand-logo" width="72" height="72">
+                <h2 class="brand-title">MediBill</h2>
+            </a>
             <p class="text-muted">You have been signed out of your account.</p>
         </div>
 

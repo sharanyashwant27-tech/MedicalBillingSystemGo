@@ -2,6 +2,8 @@
 FROM eclipse-temurin:21-jdk-alpine AS build
 WORKDIR /app
 
+ARG APP_VERSION=1.0.0
+
 RUN apk add --no-cache maven
 
 # Cache Maven dependencies separately from source changes
@@ -15,8 +17,11 @@ RUN mvn clean package -DskipTests -B -q
 FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
 
-LABEL org.opencontainers.image.title="Medical Billing System" \
-      org.opencontainers.image.description="Spring Boot medical shop billing application" \
+ARG APP_VERSION=1.0.0
+
+LABEL org.opencontainers.image.title="MediBill - Medical Billing System" \
+      org.opencontainers.image.description="Spring Boot medical shop billing application with JWT security, inventory, and dashboard" \
+      org.opencontainers.image.version="${APP_VERSION}" \
       org.opencontainers.image.source="https://github.com/sharanyashwant27-tech/MedicalBillingSystem"
 
 ENV JAVA_TOOL_OPTIONS="-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0" \

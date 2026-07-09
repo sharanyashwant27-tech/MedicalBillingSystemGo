@@ -46,17 +46,6 @@ body {
 
 .login-header { text-align: center; margin-bottom: 30px; }
 
-.login-logo {
-    width: 80px; height: 80px;
-    background: var(--primary-green-light);
-    border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
-    margin: 0 auto 20px;
-    font-size: 2.5rem;
-    color: var(--primary-green);
-    animation: pulse 2s infinite;
-}
-
 .btn-login {
     padding: 12px;
     font-weight: 600;
@@ -85,12 +74,68 @@ body {
 
 .sidebar-header {
     padding: 20px;
-    font-size: 1.4rem;
-    font-weight: 700;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+
+.sidebar-brand {
     display: flex;
     align-items: center;
-    gap: 10px;
-    border-bottom: 1px solid rgba(255,255,255,0.1);
+    gap: 12px;
+    color: #fff;
+    text-decoration: none;
+    transition: var(--transition);
+}
+
+.sidebar-brand:hover {
+    color: #fff;
+    opacity: 0.92;
+    transform: translateY(-1px);
+}
+
+.sidebar-brand .brand-logo {
+    width: 40px;
+    height: 40px;
+    display: block;
+    flex-shrink: 0;
+    border-radius: 10px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    background: #fff;
+}
+
+.brand-name {
+    font-size: 1.4rem;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+}
+
+.login-brand {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    color: inherit;
+    text-decoration: none;
+    margin-bottom: 8px;
+    transition: var(--transition);
+}
+
+.login-brand:hover {
+    color: var(--primary-green);
+    transform: translateY(-2px);
+}
+
+.login-brand .brand-logo {
+    width: 72px;
+    height: 72px;
+    border-radius: 16px;
+    box-shadow: 0 8px 24px rgba(25, 135, 84, 0.2);
+}
+
+.login-brand .brand-title {
+    margin: 0;
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: var(--primary-green);
 }
 
 .sidebar-nav { list-style: none; padding: 15px 0; margin: 0; }

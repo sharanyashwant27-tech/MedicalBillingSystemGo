@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Service
@@ -35,10 +36,10 @@ public class CategoryService {
         if (categoryRepository.existsByNameIgnoreCase(request.getName())) {
             throw new BusinessException("Category already exists");
         }
-        Category saved = categoryRepository.save(Category.builder()
+        Category saved = categoryRepository.save(Objects.requireNonNull(Category.builder()
                 .name(request.getName())
                 .description(request.getDescription())
-                .build());
+                .build()));
         auditService.log("CREATE", "Category", saved.getId(), username, "Created category: " + saved.getName());
         return toResponse(saved);
     }
@@ -56,12 +57,12 @@ public class CategoryService {
     @Transactional
     public void delete(Long id, String username) {
         Category category = findCategory(id);
-        categoryRepository.delete(category);
+        categoryRepository.delete(Objects.requireNonNull(category));
         auditService.log("DELETE", "Category", id, username, "Deleted category: " + category.getName());
     }
 
     Category findCategory(Long id) {
-        return categoryRepository.findById(id)
+        return categoryRepository.findById(Objects.requireNonNull(id))
                 .orElseThrow(() -> new ResourceNotFoundException("Category not found with id: " + id));
     }
 
