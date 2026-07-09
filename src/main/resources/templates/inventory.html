@@ -9,7 +9,7 @@
         <div class="content-area">
             <div class="row g-4 mb-4">
                 <div class="col-md-2"><div class="stat-card"><h6>Total</h6><h3 th:text="${inventory.totalMedicines}">0</h3></div></div>
-                <div class="col-md-2"><div class="stat-card card-alert"><h6>Low Stock</h6><h3 th:text="${inventory.lowStock}">0</h3></div></div>
+                <div class="col-md-2"><div class="stat-card card-alert"><h6>Low Stock (&lt;10)</h6><h3 th:text="${inventory.lowStock}">0</h3></div></div>
                 <div class="col-md-2"><div class="stat-card card-expired"><h6>Out of Stock</h6><h3 th:text="${inventory.outOfStock}">0</h3></div></div>
                 <div class="col-md-2"><div class="stat-card"><h6>Near Expiry</h6><h3 th:text="${inventory.nearExpiry}">0</h3></div></div>
                 <div class="col-md-2"><div class="stat-card card-expired"><h6>Expired</h6><h3 th:text="${inventory.expired}">0</h3></div></div>
@@ -33,7 +33,7 @@
                             <td th:text="${m.batchNumber}"></td>
                             <td th:text="${m.expiryDate}"></td>
                             <td th:text="${m.currentStock}"
-                                th:class="${m.currentStock != null and m.currentStock == 0 ? 'text-danger fw-bold' : (m.currentStock != null and m.minimumStock != null and m.currentStock > 0 and m.currentStock <= m.minimumStock ? 'text-warning fw-bold' : '')}"></td>
+                                th:class="${m.currentStock != null and m.currentStock == 0 ? 'text-danger fw-bold' : (m.currentStock != null and m.currentStock > 0 and m.currentStock < 10 ? 'text-warning fw-bold' : '')}"></td>
                             <td th:text="${m.minimumStock}"></td>
                             <td th:with="stock=${m.currentStock != null ? m.currentStock : 0},
                                          lineValue=${m.purchasePrice != null ? m.purchasePrice.multiply(new java.math.BigDecimal(stock)) : new java.math.BigDecimal(0)}"

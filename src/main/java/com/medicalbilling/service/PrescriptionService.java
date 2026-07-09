@@ -17,6 +17,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 
 @Service
@@ -57,7 +58,7 @@ public class PrescriptionService {
                 .uploadedBy(user)
                 .build();
 
-        Prescription saved = prescriptionRepository.save(prescription);
+        Prescription saved = prescriptionRepository.save(Objects.requireNonNull(prescription));
         auditService.log("UPLOAD", "Prescription", saved.getId(), username, "Uploaded prescription for customer: " + customer.getCustomerName());
         return saved;
     }

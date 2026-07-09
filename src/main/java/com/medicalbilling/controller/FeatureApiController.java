@@ -32,6 +32,7 @@ public class FeatureApiController {
     private final SaleService saleService;
     private final MedicineService medicineService;
     private final NotificationLogRepository notificationLogRepository;
+    private final LowStockNotificationService lowStockNotificationService;
 
     // Branches
     @GetMapping("/branches")
@@ -175,5 +176,19 @@ public class FeatureApiController {
     @GetMapping("/notifications")
     public ResponseEntity<List<NotificationLog>> getNotifications() {
         return ResponseEntity.ok(notificationLogRepository.findTop50ByOrderBySentAtDesc());
+    }
+
+    @GetMapping("/notifications/low-stock")
+    public ResponseEntity<List<com.medicalbilling.dto.DtoModels.AlertItem>> getLowStockAlerts() {
+        return ResponseEntity.ok(lowStockNotificationService.getDetailedLowStockAlerts());
+    }
+
+    @PostMapping("/notifications/low-stock/digest")
+    public ResponseEntity<Map<String, Object>> sendLowStockDigest() {
+        int count = lowStockNotificationService.sendDailyLowStockDigest();
+        return ResponseEntity.ok(Map.of(
+                "message", count > 0 ? "Low stock digest sent" : "No low stock items or digest already sent today",
+                "count", count
+        ));
     }
 }

@@ -42,7 +42,7 @@
                     <div class="stat-card card-alert animate-slide-up" style="animation-delay: 0.3s">
                         <div class="stat-icon"><i class="bi bi-exclamation-triangle"></i></div>
                         <div class="stat-info">
-                            <h6>Low Stock</h6>
+                            <h6>Low Stock (&lt;10)</h6>
                             <h3 th:text="${dashboard.lowStockMedicines}">0</h3>
                         </div>
                     </div>
@@ -102,6 +102,56 @@
                 </div>
             </div>
 
+            <div class="row g-4 mb-4">
+                <div class="col-12">
+                    <div class="card" th:if="${dashboard.lowStockMedicines > 0}">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0"><i class="bi bi-exclamation-triangle text-warning"></i> Low Stock Medicines (&lt; 10 units)</h5>
+                            <a th:href="@{/inventory(filter='LOW_STOCK')}" class="btn btn-sm btn-outline-warning">View in Inventory</a>
+                        </div>
+                        <div class="card-body table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead>
+                                <tr>
+                                    <th>Medicine</th>
+                                    <th>Code</th>
+                                    <th>Stock</th>
+                                    <th>Threshold</th>
+                                    <th>Short By</th>
+                                    <th>Category</th>
+                                    <th>Supplier</th>
+                                    <th>Batch</th>
+                                    <th>Expiry</th>
+                                    <th>Rack</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                <tr th:each="alert : ${dashboard.alerts}" th:if="${alert.type == 'LOW_STOCK'}">
+                                    <td>
+                                        <span class="fw-semibold" th:text="${alert.medicineName}">Medicine</span>
+                                        <span th:if="${alert.stockStatus == 'OUT_OF_STOCK'}" class="badge bg-danger ms-1">Out of stock</span>
+                                        <span th:if="${alert.stockStatus == 'LOW_STOCK'}" class="badge bg-warning text-dark ms-1">Low</span>
+                                    </td>
+                                    <td th:text="${alert.medicineCode}">MED-001</td>
+                                    <td th:text="${alert.currentStock}">0</td>
+                                    <td th:text="${alert.minimumStock}">10</td>
+                                    <td class="text-danger fw-semibold" th:text="${alert.shortage}">0</td>
+                                    <td th:text="${alert.categoryName ?: '-'}">-</td>
+                                    <td>
+                                        <span th:text="${alert.supplierName ?: '-'}">-</span>
+                                        <small th:if="${alert.supplierPhone}" class="text-muted d-block" th:text="${alert.supplierPhone}"></small>
+                                    </td>
+                                    <td th:text="${alert.batchNumber ?: '-'}">-</td>
+                                    <td th:text="${alert.expiryDate != null ? #temporals.format(alert.expiryDate, 'dd-MM-yyyy') : '-'}">-</td>
+                                    <td th:text="${alert.rackNumber ?: '-'}">-</td>
+                                </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <div class="row g-4">
                 <div class="col-lg-8">
                     <div class="card">
@@ -115,7 +165,14 @@
                         <div class="card-body alerts-list" id="alertsList">
                             <div th:each="alert : ${dashboard.alerts}" class="alert-item" th:classappend="'alert-' + ${alert.severity}">
                                 <i class="bi bi-exclamation-circle"></i>
-                                <span th:text="${alert.message}">Alert</span>
+                                <div>
+                                    <div th:text="${alert.message}">Alert</div>
+                                    <small th:if="${alert.type == 'LOW_STOCK'}" class="text-muted d-block">
+                                        <span th:text="${alert.medicineCode}"></span>
+                                        <span th:if="${alert.categoryName}"> · <span th:text="${alert.categoryName}"></span></span>
+                                        <span th:if="${alert.supplierName}"> · Supplier: <span th:text="${alert.supplierName}"></span></span>
+                                    </small>
+                                </div>
                             </div>
                             <p th:if="${#lists.isEmpty(dashboard.alerts)}" class="text-muted">No alerts</p>
                         </div>

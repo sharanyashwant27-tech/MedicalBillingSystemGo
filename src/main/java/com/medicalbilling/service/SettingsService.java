@@ -13,6 +13,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Objects;
 import java.util.UUID;
 
 @Service
@@ -48,7 +49,7 @@ public class SettingsService {
         if (request.getInvoiceFooter() != null) settings.setInvoiceFooter(request.getInvoiceFooter());
         if (request.getDefaultGstPercent() != null) settings.setDefaultGstPercent(request.getDefaultGstPercent());
 
-        ShopSettings saved = shopSettingsRepository.save(settings);
+        ShopSettings saved = shopSettingsRepository.save(Objects.requireNonNull(settings));
         auditService.log("UPDATE", "ShopSettings", saved.getId(), username, "Updated shop settings");
         return saved;
     }
@@ -62,7 +63,7 @@ public class SettingsService {
         Path target = logoPath.resolve(fileName);
         Files.copy(file.getInputStream(), target);
         settings.setLogoPath(target.toString());
-        ShopSettings saved = shopSettingsRepository.save(settings);
+        ShopSettings saved = shopSettingsRepository.save(Objects.requireNonNull(settings));
         auditService.log("UPLOAD", "ShopSettings", saved.getId(), username, "Uploaded shop logo");
         return saved;
     }

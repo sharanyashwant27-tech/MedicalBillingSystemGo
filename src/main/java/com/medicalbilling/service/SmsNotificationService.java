@@ -29,10 +29,15 @@ public class SmsNotificationService {
     private String senderId;
 
     public NotificationLog sendSms(String phone, String message) {
+        return sendSms(phone, message, null);
+    }
+
+    public NotificationLog sendSms(String phone, String message, String referenceId) {
         NotificationLog logEntry = NotificationLog.builder()
                 .type(NotificationType.SMS)
                 .recipient(phone)
                 .message(message)
+                .referenceId(referenceId)
                 .build();
 
         if (!smsEnabled || phone == null || phone.isBlank()) {
@@ -52,8 +57,8 @@ public class SmsNotificationService {
         return notificationLogRepository.save(logEntry);
     }
 
-    public void sendLowStockAlert(String phone, String medicineName, int stock) {
-        sendSms(phone, "ALERT: " + medicineName + " is low on stock (" + stock + " units). Please reorder.");
+    public NotificationLog sendLowStockAlert(String phone, String message, String referenceId) {
+        return sendSms(phone, message, referenceId);
     }
 
     public void sendBillNotification(String phone, String billNumber, String amount) {

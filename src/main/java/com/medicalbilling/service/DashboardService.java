@@ -27,6 +27,7 @@ public class DashboardService {
     private final CustomerRepository customerRepository;
     private final SupplierRepository supplierRepository;
     private final PaymentRepository paymentRepository;
+    private final LowStockNotificationService lowStockNotificationService;
 
     @Transactional(readOnly = true)
     public DtoModels.DashboardResponse getDashboardData() {
@@ -39,9 +40,7 @@ public class DashboardService {
         List<Sale> todaySaleList = saleRepository.findSalesBetweenWithDetails(startOfDay, endOfDay);
         BigDecimal todayProfit = calculateTodayProfit(todaySaleList);
 
-        long lowStock = medicineRepository.findAll().stream()
-                .filter(m -> m.getCurrentStock() <= m.getMinimumStock() && m.getCurrentStock() > 0)
-                .count();
+        long lowStock = lowStockNotificationService.countLowStockMedicines();
         long expired = medicineRepository.findByExpiryDateBefore(LocalDate.now()).size();
 
         List<DtoModels.AlertItem> alerts = buildAlerts();
@@ -85,17 +84,7 @@ public class DashboardService {
     }
 
     private List<DtoModels.AlertItem> buildAlerts() {
-        List<DtoModels.AlertItem> alerts = new ArrayList<>();
-        List<Medicine> lowStockMeds = medicineRepository.findAll().stream()
-                .filter(m -> m.getCurrentStock() <= m.getMinimumStock())
-                .toList();
-        for (Medicine m : lowStockMeds) {
-            alerts.add(DtoModels.AlertItem.builder()
-                    .type("LOW_STOCK")
-                    .message(m.getMedicineName() + " - Stock: " + m.getCurrentStock())
-                    .severity("warning")
-                    .build());
-        }
+        List<DtoModels.AlertItem> alerts = new ArrayList<>(lowStockNotificationService.getDetailedLowStockAlerts());
         List<Medicine> nearExpiry = medicineRepository.findByExpiryDateBetween(
                 LocalDate.now(), LocalDate.now().plusDays(30));
         for (Medicine m : nearExpiry) {
@@ -103,6 +92,14 @@ public class DashboardService {
                     .type("NEAR_EXPIRY")
                     .message(m.getMedicineName() + " expires on " + m.getExpiryDate())
                     .severity("danger")
+                    .medicineId(m.getId())
+                    .medicineCode(m.getMedicineCode())
+                    .medicineName(m.getMedicineName())
+                    .currentStock(m.getCurrentStock())
+                    .minimumStock(m.getMinimumStock())
+                    .batchNumber(m.getBatchNumber())
+                    .expiryDate(m.getExpiryDate())
+                    .rackNumber(m.getRackNumber())
                     .build());
         }
         return alerts;

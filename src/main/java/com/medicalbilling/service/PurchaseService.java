@@ -13,7 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.List;
-import java.util.stream.Collectors;
+import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
@@ -31,7 +31,7 @@ public class PurchaseService {
     }
 
     public Purchase getById(Long id) {
-        return purchaseRepository.findById(id)
+        return purchaseRepository.findById(Objects.requireNonNull(id))
                 .orElseThrow(() -> new ResourceNotFoundException("Purchase not found with id: " + id));
     }
 

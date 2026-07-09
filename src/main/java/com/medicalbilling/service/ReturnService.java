@@ -12,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
@@ -34,14 +35,17 @@ public class ReturnService {
         Medicine medicine = medicineService.findMedicine(request.getMedicineId());
 
         BigDecimal refundAmount;
+        Sale sale = null;
+        Purchase purchase = null;
+
         if (request.getReturnType() == ReturnType.SALES_RETURN) {
             if (request.getSaleId() == null) throw new BusinessException("Sale ID required for sales return");
-            Sale sale = saleService.getById(request.getSaleId());
+            sale = saleService.getById(request.getSaleId());
             refundAmount = medicine.getSellingPrice().multiply(BigDecimal.valueOf(request.getQuantity()));
             medicineService.adjustStock(medicine.getId(), request.getQuantity());
         } else {
             if (request.getPurchaseId() == null) throw new BusinessException("Purchase ID required for purchase return");
-            Purchase purchase = purchaseService.getById(request.getPurchaseId());
+            purchase = purchaseService.getById(request.getPurchaseId());
             refundAmount = medicine.getPurchasePrice().multiply(BigDecimal.valueOf(request.getQuantity()));
             medicineService.adjustStock(medicine.getId(), -request.getQuantity());
         }
@@ -56,10 +60,10 @@ public class ReturnService {
                 .processedBy(user)
                 .build();
 
-        if (request.getSaleId() != null) medicineReturn.setSale(saleService.getById(request.getSaleId()));
-        if (request.getPurchaseId() != null) medicineReturn.setPurchase(purchaseService.getById(request.getPurchaseId()));
+        if (sale != null) medicineReturn.setSale(sale);
+        if (purchase != null) medicineReturn.setPurchase(purchase);
 
-        MedicineReturn saved = returnRepository.save(medicineReturn);
+        MedicineReturn saved = returnRepository.save(Objects.requireNonNull(medicineReturn));
         auditService.log("CREATE", "Return", saved.getId(), username, "Processed return: " + saved.getReturnNumber());
         return saved;
     }

@@ -10,6 +10,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Service
@@ -32,7 +33,7 @@ public class SupplierService {
 
     @Transactional
     public DtoModels.SupplierResponse create(DtoModels.SupplierRequest request, String username) {
-        Supplier saved = supplierRepository.save(toEntity(request));
+        Supplier saved = supplierRepository.save(Objects.requireNonNull(toEntity(request)));
         auditService.log("CREATE", "Supplier", saved.getId(), username, "Created supplier: " + saved.getSupplierName());
         return toResponse(saved);
     }
@@ -41,21 +42,22 @@ public class SupplierService {
     public DtoModels.SupplierResponse update(Long id, DtoModels.SupplierRequest request, String username) {
         Supplier supplier = findSupplier(id);
         updateEntity(supplier, request);
-        Supplier saved = supplierRepository.save(supplier);
+        Supplier saved = supplierRepository.save(Objects.requireNonNull(supplier));
         auditService.log("UPDATE", "Supplier", saved.getId(), username, "Updated supplier: " + saved.getSupplierName());
         return toResponse(saved);
     }
 
     @Transactional
     public void delete(Long id, String username) {
-        Supplier supplier = findSupplier(id);
+        Supplier supplier = Objects.requireNonNull(findSupplier(id));
         supplierRepository.delete(supplier);
         auditService.log("DELETE", "Supplier", id, username, "Deleted supplier: " + supplier.getSupplierName());
     }
 
     Supplier findSupplier(Long id) {
-        return supplierRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Supplier not found with id: " + id));
+        Long supplierId = Objects.requireNonNull(id);
+        return supplierRepository.findById(supplierId)
+                .orElseThrow(() -> new ResourceNotFoundException("Supplier not found with id: " + supplierId));
     }
 
     private Supplier toEntity(DtoModels.SupplierRequest request) {

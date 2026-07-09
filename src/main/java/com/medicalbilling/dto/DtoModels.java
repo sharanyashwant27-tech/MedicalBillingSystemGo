@@ -245,6 +245,19 @@ public class DtoModels {
         private String type;
         private String message;
         private String severity;
+        private Long medicineId;
+        private String medicineCode;
+        private String medicineName;
+        private Integer currentStock;
+        private Integer minimumStock;
+        private Integer shortage;
+        private String categoryName;
+        private String supplierName;
+        private String supplierPhone;
+        private String batchNumber;
+        private java.time.LocalDate expiryDate;
+        private String rackNumber;
+        private String stockStatus;
     }
 
     @Data @Builder @NoArgsConstructor @AllArgsConstructor

@@ -41,9 +41,24 @@
     <button class="btn btn-link sidebar-toggle" id="sidebarToggle"><i class="bi bi-list"></i></button>
     <h5 class="page-title mb-0" th:text="${pageTitle}">Dashboard</h5>
     <div class="navbar-actions">
-        <div class="notification-bell" id="notificationBell">
-            <i class="bi bi-bell"></i>
-            <span class="badge bg-danger" id="alertCount">0</span>
+        <div class="notification-wrap" id="notificationWrap">
+            <button type="button" class="notification-bell-btn" id="notificationBell" title="Low stock alerts (below 10 units)" aria-label="Notifications">
+                <i class="bi bi-bell" id="notificationBellIcon"></i>
+                <span class="notification-badge" id="alertCount">0</span>
+                <div class="notification-panel" id="notificationPanel">
+                    <div class="notification-panel-header">
+                        <div>
+                            <strong>Low Stock Alerts</strong>
+                            <div class="small text-muted">Medicines with less than 10 units</div>
+                        </div>
+                        <a th:href="@{/inventory(filter='LOW_STOCK')}" class="small">View all</a>
+                    </div>
+                    <div class="notification-panel-body" id="notificationList">
+                        <p class="text-muted small mb-0">Loading alerts...</p>
+                    </div>
+                </div>
+            </button>
+            <span class="notification-message" id="notificationMessage" aria-live="polite"></span>
         </div>
         <button class="btn btn-sm btn-outline-secondary" id="darkModeToggle" title="Toggle Dark Mode">
             <i class="bi bi-moon"></i>

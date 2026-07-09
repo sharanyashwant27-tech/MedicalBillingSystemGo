@@ -86,9 +86,12 @@ public class ReportService {
 
     private Map<String, Object> gstReport(LocalDateTime start, LocalDateTime end) {
         List<Sale> sales = saleRepository.findSalesBetween(start, end);
-        BigDecimal totalGst = sales.stream()
-                .map(Sale::getGstAmount)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal totalGst = BigDecimal.ZERO;
+        for (Sale sale : sales) {
+            if (sale != null && sale.getGstAmount() != null) {
+                totalGst = totalGst.add(sale.getGstAmount());
+            }
+        }
         Map<String, Object> report = new LinkedHashMap<>();
         report.put("reportType", "GST Report");
         report.put("totalGstCollected", totalGst);

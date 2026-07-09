@@ -29,7 +29,9 @@ public class ReorderSuggestionService {
         Map<Long, Integer> salesVelocity = new HashMap<>();
         for (Sale sale : recentSales) {
             for (SaleItem item : sale.getItems()) {
-                salesVelocity.merge(item.getMedicine().getId(), item.getQuantity(), Integer::sum);
+                Long medicineId = item.getMedicine().getId();
+                int quantity = item.getQuantity() != null ? item.getQuantity() : 0;
+                salesVelocity.put(medicineId, salesVelocity.getOrDefault(medicineId, 0) + quantity);
             }
         }
 

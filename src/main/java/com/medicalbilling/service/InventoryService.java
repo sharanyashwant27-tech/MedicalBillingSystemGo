@@ -18,13 +18,14 @@ public class InventoryService {
 
     private final MedicineRepository medicineRepository;
     private final MedicineService medicineService;
+    private final LowStockNotificationService lowStockNotificationService;
 
     @Transactional(readOnly = true)
     public DtoModels.InventorySummary getInventorySummary(String filter) {
         List<Medicine> all = medicineRepository.findAll();
         List<Medicine> filtered = switch (filter != null ? filter.toUpperCase() : "ALL") {
             case "LOW_STOCK" -> all.stream()
-                    .filter(m -> m.getCurrentStock() <= m.getMinimumStock() && m.getCurrentStock() > 0)
+                    .filter(m -> lowStockNotificationService.isLowStock(m.getCurrentStock()))
                     .collect(Collectors.toList());
             case "OUT_OF_STOCK" -> all.stream()
                     .filter(m -> m.getCurrentStock() == 0)
@@ -35,7 +36,9 @@ public class InventoryService {
             default -> all;
         };
 
-        long lowStock = all.stream().filter(m -> m.getCurrentStock() <= m.getMinimumStock() && m.getCurrentStock() > 0).count();
+        long lowStock = all.stream()
+                .filter(m -> lowStockNotificationService.isLowStock(m.getCurrentStock()) && m.getCurrentStock() > 0)
+                .count();
         long outOfStock = all.stream().filter(m -> m.getCurrentStock() == 0).count();
         long nearExpiry = medicineRepository.findByExpiryDateBetween(LocalDate.now(), LocalDate.now().plusDays(30)).size();
         long expired = medicineRepository.findByExpiryDateBefore(LocalDate.now()).size();

@@ -12,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Service
@@ -22,6 +23,7 @@ public class MedicineService {
     private final CategoryService categoryService;
     private final SupplierService supplierService;
     private final AuditService auditService;
+    private final LowStockNotificationService lowStockNotificationService;
 
     @Transactional(readOnly = true)
     public List<DtoModels.MedicineResponse> getAll(String search) {
@@ -54,7 +56,7 @@ public class MedicineService {
         if (medicine.getMedicineCode() == null || medicine.getMedicineCode().isBlank()) {
             medicine.setMedicineCode(CodeGenerator.generateMedicineCode());
         }
-        Medicine saved = medicineRepository.save(medicine);
+        Medicine saved = medicineRepository.save(Objects.requireNonNull(medicine));
         auditService.log("CREATE", "Medicine", saved.getId(), username, "Created medicine: " + saved.getMedicineName());
         return toResponse(saved);
     }
@@ -63,7 +65,7 @@ public class MedicineService {
     public DtoModels.MedicineResponse update(Long id, DtoModels.MedicineRequest request, String username) {
         Medicine medicine = findMedicine(id);
         updateEntity(medicine, request);
-        Medicine saved = medicineRepository.save(medicine);
+        Medicine saved = medicineRepository.save(Objects.requireNonNull(medicine));
         auditService.log("UPDATE", "Medicine", saved.getId(), username, "Updated medicine: " + saved.getMedicineName());
         return toResponse(saved);
     }
@@ -72,7 +74,7 @@ public class MedicineService {
     public void delete(Long id, String username) {
         Medicine medicine = findMedicine(id);
         medicine.setStatus(MedicineStatus.INACTIVE);
-        medicineRepository.save(medicine);
+        medicineRepository.save(Objects.requireNonNull(medicine));
         auditService.log("DELETE", "Medicine", id, username, "Deactivated medicine: " + medicine.getMedicineName());
     }
 
@@ -83,25 +85,28 @@ public class MedicineService {
         medicine.setPurchasePrice(purchasePrice);
         if (expiryDate != null) medicine.setExpiryDate(expiryDate);
         if (batchNumber != null) medicine.setBatchNumber(batchNumber);
-        medicineRepository.save(medicine);
+        medicineRepository.save(Objects.requireNonNull(medicine));
     }
 
     @Transactional
     public void adjustStock(Long medicineId, int quantityChange) {
         Medicine medicine = findMedicine(medicineId);
-        int newStock = medicine.getCurrentStock() + quantityChange;
+        int previousStock = medicine.getCurrentStock();
+        int newStock = previousStock + quantityChange;
         if (newStock < 0) {
             throw new BusinessException("Insufficient stock for medicine: " + medicine.getMedicineName());
         }
         medicine.setCurrentStock(newStock);
-        medicineRepository.save(medicine);
+        medicineRepository.save(Objects.requireNonNull(medicine));
+        lowStockNotificationService.notifyOnStockChange(medicine, previousStock);
     }
 
     @Transactional(readOnly = true)
     Medicine findMedicine(Long id) {
-        return medicineRepository.findByIdWithDetails(id)
-                .orElseGet(() -> medicineRepository.findById(id)
-                        .orElseThrow(() -> new ResourceNotFoundException("Medicine not found with id: " + id)));
+        Long medicineId = Objects.requireNonNull(id);
+        return medicineRepository.findByIdWithDetails(medicineId)
+                .orElseGet(() -> medicineRepository.findById(medicineId)
+                        .orElseThrow(() -> new ResourceNotFoundException("Medicine not found with id: " + medicineId)));
     }
 
     private Medicine toEntity(DtoModels.MedicineRequest request) {

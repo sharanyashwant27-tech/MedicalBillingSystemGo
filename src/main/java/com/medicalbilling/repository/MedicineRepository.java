@@ -38,6 +38,11 @@ public interface MedicineRepository extends JpaRepository<Medicine, Long> {
     @Query("SELECT COUNT(m) FROM Medicine m WHERE m.status = 'ACTIVE'")
     long countActiveMedicines();
 
+    @Query("SELECT m FROM Medicine m LEFT JOIN FETCH m.category LEFT JOIN FETCH m.supplier " +
+           "WHERE m.status = 'ACTIVE' AND m.currentStock < :threshold " +
+           "ORDER BY m.currentStock ASC, m.medicineName ASC")
+    List<Medicine> findLowStockMedicinesWithDetails(@Param("threshold") int threshold);
+
     @Query("SELECT SUM(m.currentStock * m.purchasePrice) FROM Medicine m WHERE m.status = 'ACTIVE'")
     java.math.BigDecimal calculateInventoryValuation();
 }

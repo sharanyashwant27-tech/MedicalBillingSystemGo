@@ -15,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -49,7 +50,7 @@ public class UserService {
                 .phone(request.getPhone())
                 .roles(roles)
                 .build();
-        User saved = userRepository.save(user);
+        User saved = userRepository.save(Objects.requireNonNull(user));
         auditService.log("CREATE", "User", saved.getId(), adminUsername, "Created user: " + saved.getUsername());
         return toResponse(saved);
     }
@@ -64,14 +65,14 @@ public class UserService {
         if (request.getPassword() != null && !request.getPassword().isBlank()) {
             user.setPassword(passwordEncoder.encode(request.getPassword()));
         }
-        User saved = userRepository.save(user);
+        User saved = userRepository.save(Objects.requireNonNull(user));
         auditService.log("UPDATE", "User", saved.getId(), adminUsername, "Updated user: " + saved.getUsername());
         return toResponse(saved);
     }
 
     @Transactional
     public void deleteUser(Long id, String adminUsername) {
-        User user = findUser(id);
+        User user = Objects.requireNonNull(findUser(id));
         if ("admin".equals(user.getUsername())) {
             throw new BusinessException("Cannot delete default admin user");
         }
@@ -83,7 +84,7 @@ public class UserService {
     public void resetPassword(Long id, String newPassword, String adminUsername) {
         User user = findUser(id);
         user.setPassword(passwordEncoder.encode(newPassword));
-        userRepository.save(user);
+        userRepository.save(Objects.requireNonNull(user));
         auditService.log("RESET_PASSWORD", "User", id, adminUsername, "Reset password for: " + user.getUsername());
     }
 
@@ -91,7 +92,7 @@ public class UserService {
     public void lockUser(Long id, String adminUsername) {
         User user = findUser(id);
         user.setAccountNonLocked(false);
-        userRepository.save(user);
+        userRepository.save(Objects.requireNonNull(user));
         auditService.log("LOCK", "User", id, adminUsername, "Locked user: " + user.getUsername());
     }
 
@@ -99,13 +100,14 @@ public class UserService {
     public void unlockUser(Long id, String adminUsername) {
         User user = findUser(id);
         user.setAccountNonLocked(true);
-        userRepository.save(user);
+        userRepository.save(Objects.requireNonNull(user));
         auditService.log("UNLOCK", "User", id, adminUsername, "Unlocked user: " + user.getUsername());
     }
 
     private User findUser(Long id) {
-        return userRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));
+        Long userId = Objects.requireNonNull(id);
+        return userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
     }
 
     private Set<Role> resolveRoles(List<RoleType> roleTypes) {

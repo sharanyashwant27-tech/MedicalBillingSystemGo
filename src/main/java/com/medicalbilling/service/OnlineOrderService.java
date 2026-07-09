@@ -1,10 +1,8 @@
 package com.medicalbilling.service;
 
 import com.medicalbilling.entity.*;
-import com.medicalbilling.exception.BusinessException;
 import com.medicalbilling.exception.ResourceNotFoundException;
 import com.medicalbilling.repository.OnlineOrderRepository;
-import com.medicalbilling.util.CodeGenerator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -12,6 +10,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
@@ -36,8 +35,9 @@ public class OnlineOrderService {
 
     @Transactional(readOnly = true)
     public OnlineOrder getById(Long id) {
-        return onlineOrderRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Order not found: " + id));
+        Long orderId = Objects.requireNonNull(id);
+        return onlineOrderRepository.findById(orderId)
+                .orElseThrow(() -> new ResourceNotFoundException("Order not found: " + orderId));
     }
 
     @Transactional
