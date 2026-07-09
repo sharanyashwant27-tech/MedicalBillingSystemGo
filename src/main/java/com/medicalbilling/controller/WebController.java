@@ -101,8 +101,10 @@ public class WebController {
 
     @GetMapping("/inventory")
     public String inventory(Model model, @RequestParam(required = false) String filter) {
+        String normalizedFilter = filter != null ? filter.toUpperCase() : "ALL";
         model.addAttribute("inventory", inventoryService.getInventorySummary(filter));
-        model.addAttribute("pageTitle", "Inventory");
+        model.addAttribute("filter", normalizedFilter);
+        model.addAttribute("pageTitle", "EXPIRED".equals(normalizedFilter) ? "Expired Medicines" : "Inventory");
         model.addAttribute("activePage", "inventory");
         return "inventory";
     }

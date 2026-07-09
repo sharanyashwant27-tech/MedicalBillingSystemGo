@@ -88,20 +88,35 @@ public class DashboardService {
         List<Medicine> nearExpiry = medicineRepository.findByExpiryDateBetween(
                 LocalDate.now(), LocalDate.now().plusDays(30));
         for (Medicine m : nearExpiry) {
-            alerts.add(DtoModels.AlertItem.builder()
-                    .type("NEAR_EXPIRY")
-                    .message(m.getMedicineName() + " expires on " + m.getExpiryDate())
-                    .severity("danger")
-                    .medicineId(m.getId())
-                    .medicineCode(m.getMedicineCode())
-                    .medicineName(m.getMedicineName())
-                    .currentStock(m.getCurrentStock())
-                    .minimumStock(m.getMinimumStock())
-                    .batchNumber(m.getBatchNumber())
-                    .expiryDate(m.getExpiryDate())
-                    .rackNumber(m.getRackNumber())
-                    .build());
+            alerts.add(toExpiryAlert(m, "NEAR_EXPIRY",
+                    m.getMedicineName() + " expires on " + m.getExpiryDate(), "warning"));
+        }
+
+        List<Medicine> expired = medicineRepository.findByExpiryDateBefore(LocalDate.now());
+        for (Medicine m : expired) {
+            alerts.add(toExpiryAlert(m, "EXPIRED",
+                    m.getMedicineName() + " expired on " + m.getExpiryDate(), "danger"));
         }
         return alerts;
+    }
+
+    private DtoModels.AlertItem toExpiryAlert(Medicine medicine, String type, String message, String severity) {
+        return DtoModels.AlertItem.builder()
+                .type(type)
+                .message(message)
+                .severity(severity)
+                .stockStatus(type)
+                .medicineId(medicine.getId())
+                .medicineCode(medicine.getMedicineCode())
+                .medicineName(medicine.getMedicineName())
+                .currentStock(medicine.getCurrentStock())
+                .minimumStock(medicine.getMinimumStock())
+                .categoryName(medicine.getCategory() != null ? medicine.getCategory().getName() : null)
+                .supplierName(medicine.getSupplier() != null ? medicine.getSupplier().getSupplierName() : null)
+                .supplierPhone(medicine.getSupplier() != null ? medicine.getSupplier().getPhone() : null)
+                .batchNumber(medicine.getBatchNumber())
+                .expiryDate(medicine.getExpiryDate())
+                .rackNumber(medicine.getRackNumber())
+                .build();
     }
 }

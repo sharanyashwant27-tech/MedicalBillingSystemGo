@@ -9,6 +9,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -32,7 +33,10 @@ public class InventoryService {
                     .collect(Collectors.toList());
             case "NEAR_EXPIRY" -> medicineRepository.findByExpiryDateBetween(
                     LocalDate.now(), LocalDate.now().plusDays(30));
-            case "EXPIRED" -> medicineRepository.findByExpiryDateBefore(LocalDate.now());
+            case "EXPIRED" -> all.stream()
+                    .filter(m -> m.getExpiryDate() != null && m.getExpiryDate().isBefore(LocalDate.now()))
+                    .sorted(Comparator.comparing(Medicine::getExpiryDate))
+                    .collect(Collectors.toList());
             default -> all;
         };
 
