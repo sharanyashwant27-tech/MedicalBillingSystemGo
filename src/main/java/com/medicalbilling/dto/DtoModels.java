@@ -222,6 +222,7 @@ public class DtoModels {
         private BigDecimal todayProfit;
         private long availableMedicines;
         private long lowStockMedicines;
+        private long nearExpiryMedicines;
         private long expiredMedicines;
         private long totalCustomers;
         private long totalSuppliers;

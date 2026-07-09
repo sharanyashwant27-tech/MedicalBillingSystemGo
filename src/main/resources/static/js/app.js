@@ -50,9 +50,10 @@ function updateDarkModeIcon(theme) {
     }
 }
 
-let lastLowStockAlerts = [];
+let lastInventoryAlerts = { lowStock: [], nearExpiry: [] };
 let notificationLoadGeneration = 0;
 const LOW_STOCK_SEEN_KEY = 'medibill.lowStockAlertsSeenFingerprint';
+const NEAR_EXPIRY_SEEN_KEY = 'medibill.nearExpiryAlertsSeenFingerprint';
 
 function getAlertsFingerprint(alerts) {
     if (!Array.isArray(alerts) || !alerts.length) {
@@ -62,38 +63,59 @@ function getAlertsFingerprint(alerts) {
     return alerts
         .map(alert => {
             const id = alert.medicineId ?? alert.medicineCode ?? alert.medicineName ?? 'unknown';
-            return `${String(id)}:${String(alert.currentStock ?? 0)}`;
+            const type = alert.type ?? 'ALERT';
+            const stock = alert.currentStock ?? 0;
+            const expiry = alert.expiryDate ?? '';
+            return `${type}:${String(id)}:${String(stock)}:${String(expiry)}`;
         })
         .sort()
         .join('|');
 }
 
-function getSeenFingerprint() {
-    return localStorage.getItem(LOW_STOCK_SEEN_KEY) || '';
+function getSeenFingerprint(seenKey) {
+    return localStorage.getItem(seenKey) || '';
 }
 
-function setSeenFingerprint(fingerprint) {
+function setSeenFingerprint(seenKey, fingerprint) {
     if (fingerprint) {
-        localStorage.setItem(LOW_STOCK_SEEN_KEY, fingerprint);
+        localStorage.setItem(seenKey, fingerprint);
     } else {
-        localStorage.removeItem(LOW_STOCK_SEEN_KEY);
+        localStorage.removeItem(seenKey);
     }
 }
 
-function areAlertsSeen(alerts) {
+function isSectionUnread(alerts, seenKey) {
     const fingerprint = getAlertsFingerprint(alerts);
     if (!fingerprint) {
-        return true;
+        return false;
     }
-    return fingerprint === getSeenFingerprint();
+    return fingerprint !== getSeenFingerprint(seenKey);
 }
 
-function clearBellDisplay() {
+function getUnreadCounts(inventoryAlerts) {
+    const lowStock = inventoryAlerts.lowStock || [];
+    const nearExpiry = inventoryAlerts.nearExpiry || [];
+    const lowStockUnread = isSectionUnread(lowStock, LOW_STOCK_SEEN_KEY) ? lowStock.length : 0;
+    const nearExpiryUnread = isSectionUnread(nearExpiry, NEAR_EXPIRY_SEEN_KEY) ? nearExpiry.length : 0;
+
+    return {
+        lowStockUnread,
+        nearExpiryUnread,
+        total: lowStockUnread + nearExpiryUnread
+    };
+}
+
+function markSectionAsSeen(alerts, seenKey) {
+    setSeenFingerprint(seenKey, getAlertsFingerprint(alerts));
+}
+
+function applyReadBellState() {
     const wrap = document.getElementById('notificationWrap');
     const bell = document.getElementById('notificationBell');
     const badge = document.getElementById('alertCount');
     const icon = document.getElementById('notificationBellIcon');
     const message = document.getElementById('notificationMessage');
+    const panel = document.getElementById('notificationPanel');
 
     if (badge) {
         badge.textContent = '0';
@@ -102,32 +124,95 @@ function clearBellDisplay() {
     if (message) {
         message.textContent = '';
         message.title = '';
+        message.classList.add('is-read');
     }
 
     if (wrap) {
-        wrap.classList.remove('has-alerts');
+        wrap.classList.remove('has-alerts', 'has-unread-alerts');
     }
 
     if (bell) {
-        bell.classList.remove('has-alerts');
-        bell.title = 'Low stock alerts (below 10 units)';
+        bell.classList.remove('has-alerts', 'has-unread-alerts');
+        bell.classList.add('is-read-state');
+        bell.title = 'View notification history';
     }
 
     if (icon) {
         icon.className = 'bi bi-bell';
     }
+
+    if (panel) {
+        panel.classList.add('is-read-panel');
+    }
 }
 
-function markAlertsAsSeen(alerts) {
-    const fingerprint = getAlertsFingerprint(alerts);
-    if (!fingerprint) {
-        setSeenFingerprint('');
-        clearBellDisplay();
-        return;
+function applyUnreadBellState(inventoryAlerts, unreadCounts) {
+    const wrap = document.getElementById('notificationWrap');
+    const bell = document.getElementById('notificationBell');
+    const badge = document.getElementById('alertCount');
+    const icon = document.getElementById('notificationBellIcon');
+    const message = document.getElementById('notificationMessage');
+    const panel = document.getElementById('notificationPanel');
+    const bellMessage = buildBellMessage(inventoryAlerts, unreadCounts);
+    const unreadAlerts = getUnreadAlerts(inventoryAlerts);
+
+    if (message) {
+        message.classList.remove('is-read');
     }
 
-    setSeenFingerprint(fingerprint);
-    clearBellDisplay();
+    if (bell) {
+        bell.classList.remove('is-read-state');
+    }
+
+    if (panel) {
+        panel.classList.remove('is-read-panel');
+    }
+
+    if (badge) {
+        badge.textContent = unreadCounts.total;
+    }
+
+    if (message) {
+        message.textContent = bellMessage;
+        message.title = unreadAlerts.length
+            ? unreadAlerts.map(alert => alert.message || alert.medicineName).join('\n')
+            : '';
+    }
+
+    if (wrap) {
+        wrap.classList.toggle('has-unread-alerts', unreadCounts.total > 0);
+        wrap.classList.toggle('has-alerts', unreadCounts.total > 0);
+    }
+
+    if (bell) {
+        bell.classList.toggle('has-unread-alerts', unreadCounts.total > 0);
+        bell.classList.toggle('has-alerts', unreadCounts.total > 0);
+        bell.title = bellMessage;
+    }
+
+    if (icon) {
+        icon.className = unreadCounts.total > 0 ? 'bi bi-bell-fill' : 'bi bi-bell';
+    }
+}
+
+function getUnreadAlerts(inventoryAlerts) {
+    const unread = [];
+
+    if (isSectionUnread(inventoryAlerts.lowStock || [], LOW_STOCK_SEEN_KEY)) {
+        unread.push(...(inventoryAlerts.lowStock || []));
+    }
+    if (isSectionUnread(inventoryAlerts.nearExpiry || [], NEAR_EXPIRY_SEEN_KEY)) {
+        unread.push(...(inventoryAlerts.nearExpiry || []));
+    }
+
+    return unread;
+}
+
+function markAlertsAsSeen(inventoryAlerts) {
+    markSectionAsSeen(inventoryAlerts.lowStock || [], LOW_STOCK_SEEN_KEY);
+    markSectionAsSeen(inventoryAlerts.nearExpiry || [], NEAR_EXPIRY_SEEN_KEY);
+    updateNotificationBell(inventoryAlerts);
+    renderNotificationPanel(inventoryAlerts);
 }
 
 function setupNotificationBell() {
@@ -169,7 +254,7 @@ function closeNotificationPanel(markSeen) {
     }
 
     if (markSeen) {
-        markAlertsAsSeen(lastLowStockAlerts);
+        markAlertsAsSeen(lastInventoryAlerts);
     }
 
     panel.classList.remove('show');
@@ -188,151 +273,197 @@ async function toggleNotificationPanel() {
         return;
     }
 
-    markAlertsAsSeen(lastLowStockAlerts);
     panel.classList.add('show');
     await loadNotifications({ updateBell: false });
-    markAlertsAsSeen(lastLowStockAlerts);
+    renderNotificationPanel(lastInventoryAlerts);
 }
 
 async function loadNotifications(options = {}) {
     const { updateBell = true } = options;
 
     if (typeof API === 'undefined') {
-        return lastLowStockAlerts;
+        return lastInventoryAlerts;
     }
 
     const generation = ++notificationLoadGeneration;
 
     try {
-        const lowStockAlerts = await API.get('/api/notifications/low-stock');
+        const data = await API.get('/api/notifications/inventory-alerts');
         if (generation !== notificationLoadGeneration) {
-            return lastLowStockAlerts;
+            return lastInventoryAlerts;
         }
 
-        lastLowStockAlerts = Array.isArray(lowStockAlerts) ? lowStockAlerts : [];
-        renderNotificationPanel(lastLowStockAlerts);
+        lastInventoryAlerts = {
+            lowStock: Array.isArray(data.lowStock) ? data.lowStock : [],
+            nearExpiry: Array.isArray(data.nearExpiry) ? data.nearExpiry : []
+        };
+        renderNotificationPanel(lastInventoryAlerts);
         if (updateBell) {
-            updateNotificationBell(lastLowStockAlerts);
+            updateNotificationBell(lastInventoryAlerts);
         }
     } catch (e) {
         try {
             const data = await API.get('/api/dashboard');
             if (generation !== notificationLoadGeneration) {
-                return lastLowStockAlerts;
+                return lastInventoryAlerts;
             }
 
-            const alerts = (data.alerts || []).filter(alert => alert.type === 'LOW_STOCK');
-            lastLowStockAlerts = alerts;
-            renderNotificationPanel(alerts);
+            const alerts = data.alerts || [];
+            lastInventoryAlerts = {
+                lowStock: alerts.filter(alert => alert.type === 'LOW_STOCK' || alert.type === 'OUT_OF_STOCK'),
+                nearExpiry: alerts.filter(alert => alert.type === 'NEAR_EXPIRY')
+            };
+            renderNotificationPanel(lastInventoryAlerts);
             if (updateBell) {
-                updateNotificationBell(alerts);
+                updateNotificationBell(lastInventoryAlerts);
             }
         } catch (ignored) {
             // Dashboard API may not be available on login page
         }
     }
 
-    return lastLowStockAlerts;
+    return lastInventoryAlerts;
 }
 
-function buildBellMessage(lowStockAlerts) {
-    if (!lowStockAlerts.length) {
+function buildBellMessage(inventoryAlerts, unreadCounts) {
+    if (!unreadCounts.total) {
         return '';
     }
 
-    const first = lowStockAlerts[0];
-    const name = first.medicineName || 'Medicine';
-    const stock = first.currentStock ?? 0;
-    const firstLine = stock <= 0
-        ? `${name}: OUT OF STOCK`
-        : `${name}: only ${stock} left`;
-
-    if (lowStockAlerts.length === 1) {
-        return `Low stock — ${firstLine} (< 10)`;
+    const parts = [];
+    if (unreadCounts.lowStockUnread > 0) {
+        parts.push(`${unreadCounts.lowStockUnread} low stock`);
+    }
+    if (unreadCounts.nearExpiryUnread > 0) {
+        parts.push(`${unreadCounts.nearExpiryUnread} expiring soon`);
     }
 
-    return `Low stock — ${lowStockAlerts.length} medicines below 10 (${firstLine})`;
+    const unreadAlerts = getUnreadAlerts(inventoryAlerts);
+    const preview = unreadAlerts[0]?.medicineName || 'Medicine';
+
+    if (unreadCounts.total === 1) {
+        return `Unread — ${preview} (${parts.join(', ')})`;
+    }
+
+    return `Unread — ${parts.join(', ')} (${preview})`;
 }
 
-function updateNotificationBell(lowStockAlerts) {
-    if (areAlertsSeen(lowStockAlerts)) {
-        clearBellDisplay();
+function updateNotificationBell(inventoryAlerts) {
+    const unreadCounts = getUnreadCounts(inventoryAlerts);
+    const totalAlerts = (inventoryAlerts.lowStock?.length || 0) + (inventoryAlerts.nearExpiry?.length || 0);
+
+    if (!totalAlerts || unreadCounts.total === 0) {
+        applyReadBellState();
         return;
     }
 
-    const wrap = document.getElementById('notificationWrap');
-    const bell = document.getElementById('notificationBell');
-    const badge = document.getElementById('alertCount');
-    const icon = document.getElementById('notificationBellIcon');
-    const message = document.getElementById('notificationMessage');
-    const count = lowStockAlerts.length;
-    const bellMessage = buildBellMessage(lowStockAlerts);
+    applyUnreadBellState(inventoryAlerts, unreadCounts);
+}
 
-    if (badge) {
-        badge.textContent = count;
+function updateNotificationPanelHeader(inventoryAlerts) {
+    const title = document.getElementById('notificationPanelTitle');
+    const subtitle = document.getElementById('notificationPanelSubtitle');
+    const unreadCounts = getUnreadCounts(inventoryAlerts);
+    const lowStockCount = inventoryAlerts.lowStock?.length || 0;
+    const nearExpiryCount = inventoryAlerts.nearExpiry?.length || 0;
+    const total = lowStockCount + nearExpiryCount;
+
+    if (title) {
+        title.textContent = unreadCounts.total > 0 ? 'Unread Alerts' : 'Read Notifications';
     }
 
-    if (message) {
-        message.textContent = bellMessage;
-        message.title = count > 0
-            ? lowStockAlerts.map(alert => alert.message || `${alert.medicineName}: ${alert.currentStock} left`).join('\n')
-            : '';
-    }
-
-    if (wrap) {
-        wrap.classList.toggle('has-alerts', count > 0);
-    }
-
-    if (bell) {
-        bell.classList.toggle('has-alerts', count > 0);
-        bell.title = count > 0 ? bellMessage : 'No low stock alerts';
-    }
-
-    if (icon) {
-        icon.className = count > 0 ? 'bi bi-bell-fill' : 'bi bi-bell';
+    if (subtitle) {
+        if (!total) {
+            subtitle.textContent = 'No low stock or near-expiry items';
+        } else if (unreadCounts.total > 0) {
+            subtitle.textContent = `${unreadCounts.lowStockUnread} unread low stock · ${unreadCounts.nearExpiryUnread} unread expiring`;
+        } else {
+            subtitle.textContent = `${total} notification(s) marked as read`;
+        }
     }
 }
 
-function renderNotificationPanel(lowStockAlerts) {
+function renderNotificationPanel(inventoryAlerts) {
     const list = document.getElementById('notificationList');
     if (!list) {
         return;
     }
 
-    if (!lowStockAlerts.length) {
-        list.innerHTML = '<p class="text-muted small mb-0 px-2 py-2"><i class="bi bi-check-circle text-success"></i> All medicines have 10 or more units in stock.</p>';
+    const lowStockAlerts = inventoryAlerts.lowStock || [];
+    const nearExpiryAlerts = inventoryAlerts.nearExpiry || [];
+    const total = lowStockAlerts.length + nearExpiryAlerts.length;
+
+    updateNotificationPanelHeader(inventoryAlerts);
+
+    if (!total) {
+        list.innerHTML = '<p class="text-muted small mb-0 px-2 py-2"><i class="bi bi-check-circle text-success"></i> No low stock or near-expiry alerts.</p>';
         return;
     }
 
-    let html = `<div class="px-2 py-1 small text-danger fw-semibold">${lowStockAlerts.length} medicine(s) below 10 units</div>`;
+    let html = '<ul class="notification-panel-list">';
 
-    lowStockAlerts.slice(0, 12).forEach(alert => {
-        const severityClass = alert.stockStatus === 'OUT_OF_STOCK' || alert.severity === 'danger' ? 'danger' : '';
+    if (lowStockAlerts.length) {
+        const lowStockRead = !isSectionUnread(lowStockAlerts, LOW_STOCK_SEEN_KEY);
+        html += `<li class="notification-section-title ${lowStockRead ? 'read-section' : 'unread-low-stock'}">${lowStockRead ? 'Low stock (read)' : 'Low stock — unread'}</li>`;
+        html += renderAlertItems(lowStockAlerts, 'lowStock', lowStockRead);
+    }
+
+    if (nearExpiryAlerts.length) {
+        const nearExpiryRead = !isSectionUnread(nearExpiryAlerts, NEAR_EXPIRY_SEEN_KEY);
+        html += `<li class="notification-section-title ${nearExpiryRead ? 'read-section' : 'unread-near-expiry'}">${nearExpiryRead ? 'Near expiry (read)' : 'Near expiry — unread'}</li>`;
+        html += renderAlertItems(nearExpiryAlerts, 'nearExpiry', nearExpiryRead);
+    }
+
+    html += '</ul>';
+    list.innerHTML = html;
+}
+
+function renderAlertItems(alerts, alertType, isRead) {
+    let html = '';
+
+    alerts.forEach(alert => {
+        const readClass = isRead ? ' notification-item-read' : '';
+        const readBadge = isRead ? '<span class="notification-read-badge">Read</span>' : '';
+
+        if (alertType === 'nearExpiry') {
+            const daysLeft = alert.shortage ?? 0;
+            const severityClass = isRead ? '' : (daysLeft <= 7 ? 'danger' : 'info');
+            html += `
+            <li class="notification-item ${severityClass}${readClass}">
+                <div class="notification-item-title">
+                    ${escapeHtml(alert.medicineName || alert.message)}${readBadge}
+                    ${isRead ? '' : `<span class="badge ${daysLeft <= 7 ? 'bg-danger' : 'bg-info text-dark'} ms-1">Expiring</span>`}
+                </div>
+                <div><strong>${escapeHtml(daysLeft)}</strong> day(s) left · Expiry: ${escapeHtml(alert.expiryDate ?? '-')}</div>
+                <div class="notification-item-meta">
+                    ${alert.medicineCode ? `Code: ${escapeHtml(alert.medicineCode)}` : ''}
+                    ${alert.currentStock != null ? ` · Stock: ${escapeHtml(alert.currentStock)}` : ''}
+                    ${alert.batchNumber ? `<br>Batch: ${escapeHtml(alert.batchNumber)}` : ''}
+                    ${alert.supplierName ? `<br>Supplier: ${escapeHtml(alert.supplierName)}` : ''}
+                </div>
+            </li>`;
+            return;
+        }
+
+        const severityClass = isRead ? '' : (alert.stockStatus === 'OUT_OF_STOCK' || alert.severity === 'danger' ? 'danger' : '');
         const statusLabel = alert.stockStatus === 'OUT_OF_STOCK' ? 'Out of stock' : 'Low stock';
         html += `
-            <div class="notification-item ${severityClass}">
+            <li class="notification-item ${severityClass}${readClass}">
                 <div class="notification-item-title">
-                    ${escapeHtml(alert.medicineName || alert.message)}
-                    <span class="badge ${severityClass === 'danger' ? 'bg-danger' : 'bg-warning text-dark'} ms-1">${statusLabel}</span>
+                    ${escapeHtml(alert.medicineName || alert.message)}${readBadge}
+                    ${isRead ? '' : `<span class="badge ${severityClass === 'danger' ? 'bg-danger' : 'bg-warning text-dark'} ms-1">${statusLabel}</span>`}
                 </div>
                 <div><strong>${escapeHtml(alert.currentStock ?? 0)}</strong> units left (alert below 10)</div>
                 <div class="notification-item-meta">
                     ${alert.medicineCode ? `Code: ${escapeHtml(alert.medicineCode)}` : ''}
                     ${alert.categoryName ? ` · ${escapeHtml(alert.categoryName)}` : ''}
-                    ${alert.supplierName ? `<br>Supplier: ${escapeHtml(alert.supplierName)}` : ''}
-                    ${alert.supplierPhone ? ` (${escapeHtml(alert.supplierPhone)})` : ''}
                     ${alert.batchNumber ? `<br>Batch: ${escapeHtml(alert.batchNumber)}` : ''}
                     ${alert.expiryDate ? ` · Expiry: ${escapeHtml(alert.expiryDate)}` : ''}
-                    ${alert.rackNumber ? ` · Rack: ${escapeHtml(alert.rackNumber)}` : ''}
                 </div>
-            </div>`;
+            </li>`;
     });
 
-    if (lowStockAlerts.length > 12) {
-        html += `<div class="px-2 py-1 small text-muted">+ ${lowStockAlerts.length - 12} more low stock items</div>`;
-    }
-
-    list.innerHTML = html;
+    return html;
 }
 
 function escapeHtml(value) {

@@ -33,6 +33,7 @@ public class FeatureApiController {
     private final MedicineService medicineService;
     private final NotificationLogRepository notificationLogRepository;
     private final LowStockNotificationService lowStockNotificationService;
+    private final NearExpiryNotificationService nearExpiryNotificationService;
 
     // Branches
     @GetMapping("/branches")
@@ -181,6 +182,19 @@ public class FeatureApiController {
     @GetMapping("/notifications/low-stock")
     public ResponseEntity<List<com.medicalbilling.dto.DtoModels.AlertItem>> getLowStockAlerts() {
         return ResponseEntity.ok(lowStockNotificationService.getDetailedLowStockAlerts());
+    }
+
+    @GetMapping("/notifications/near-expiry")
+    public ResponseEntity<List<com.medicalbilling.dto.DtoModels.AlertItem>> getNearExpiryAlerts() {
+        return ResponseEntity.ok(nearExpiryNotificationService.getDetailedNearExpiryAlerts());
+    }
+
+    @GetMapping("/notifications/inventory-alerts")
+    public ResponseEntity<Map<String, List<com.medicalbilling.dto.DtoModels.AlertItem>>> getInventoryAlerts() {
+        return ResponseEntity.ok(Map.of(
+                "lowStock", lowStockNotificationService.getDetailedLowStockAlerts(),
+                "nearExpiry", nearExpiryNotificationService.getDetailedNearExpiryAlerts()
+        ));
     }
 
     @PostMapping("/notifications/low-stock/digest")

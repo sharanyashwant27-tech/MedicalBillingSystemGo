@@ -51,12 +51,23 @@
 
             <div class="row g-4 mb-4">
                 <div class="col-md-3 col-sm-6">
-                    <a th:href="@{/inventory(filter='EXPIRED')}" class="stat-card-link" title="View expired medicines list">
-                        <div class="stat-card card-expired animate-slide-up">
+                    <a th:href="@{/expired-medicines}" class="stat-card-link" title="View expired medicines list">
+                        <div class="stat-card card-expired">
                             <div class="stat-icon"><i class="bi bi-calendar-x"></i></div>
                             <div class="stat-info">
                                 <h6>Expired Medicines</h6>
                                 <h3 th:text="${dashboard.expiredMedicines}">0</h3>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+                <div class="col-md-3 col-sm-6">
+                    <a th:href="@{/near-expiry-medicines}" class="stat-card-link" title="View medicines expiring within 30 days">
+                        <div class="stat-card card-alert">
+                            <div class="stat-icon"><i class="bi bi-calendar-event"></i></div>
+                            <div class="stat-info">
+                                <h6>Near Expiry (30 days)</h6>
+                                <h3 th:text="${dashboard.nearExpiryMedicines}">0</h3>
                             </div>
                         </div>
                     </a>
@@ -79,6 +90,9 @@
                         </div>
                     </div>
                 </div>
+            </div>
+
+            <div class="row g-4 mb-4">
                 <div class="col-md-3 col-sm-6">
                     <div class="stat-card">
                         <div class="stat-icon"><i class="bi bi-clock-history"></i></div>
@@ -156,10 +170,55 @@
 
             <div class="row g-4 mb-4">
                 <div class="col-12">
+                    <div class="card" th:if="${dashboard.nearExpiryMedicines > 0}">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0"><i class="bi bi-calendar-event text-info"></i> Near Expiry Medicines (within 30 days)</h5>
+                            <a th:href="@{/near-expiry-medicines}" class="btn btn-sm btn-outline-info">View full list</a>
+                        </div>
+                        <div class="card-body table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead>
+                                <tr>
+                                    <th>Medicine</th>
+                                    <th>Code</th>
+                                    <th>Batch</th>
+                                    <th>Expiry</th>
+                                    <th>Days Left</th>
+                                    <th>Stock</th>
+                                    <th>Category</th>
+                                    <th>Supplier</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                <tr th:each="alert : ${dashboard.alerts}" th:if="${alert.type == 'NEAR_EXPIRY'}">
+                                    <td>
+                                        <span class="fw-semibold" th:text="${alert.medicineName}">Medicine</span>
+                                        <span class="badge bg-info text-dark ms-1">Expiring</span>
+                                    </td>
+                                    <td th:text="${alert.medicineCode}">MED-001</td>
+                                    <td th:text="${alert.batchNumber ?: '-'}">-</td>
+                                    <td class="text-info fw-semibold" th:text="${alert.expiryDate != null ? #temporals.format(alert.expiryDate, 'dd-MM-yyyy') : '-'}">-</td>
+                                    <td class="fw-semibold" th:text="${alert.shortage}">0</td>
+                                    <td th:text="${alert.currentStock}">0</td>
+                                    <td th:text="${alert.categoryName ?: '-'}">-</td>
+                                    <td>
+                                        <span th:text="${alert.supplierName ?: '-'}">-</span>
+                                        <small th:if="${alert.supplierPhone}" class="text-muted d-block" th:text="${alert.supplierPhone}"></small>
+                                    </td>
+                                </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row g-4 mb-4">
+                <div class="col-12">
                     <div class="card" th:if="${dashboard.expiredMedicines > 0}">
                         <div class="card-header d-flex justify-content-between align-items-center">
                             <h5 class="mb-0"><i class="bi bi-calendar-x text-danger"></i> Expired Medicines</h5>
-                            <a th:href="@{/inventory(filter='EXPIRED')}" class="btn btn-sm btn-outline-danger">View full list</a>
+                            <a th:href="@{/expired-medicines}" class="btn btn-sm btn-outline-danger">View full list</a>
                         </div>
                         <div class="card-body table-responsive">
                             <table class="table table-hover align-middle mb-0">

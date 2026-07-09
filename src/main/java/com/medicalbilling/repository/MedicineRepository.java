@@ -43,6 +43,12 @@ public interface MedicineRepository extends JpaRepository<Medicine, Long> {
            "ORDER BY m.currentStock ASC, m.medicineName ASC")
     List<Medicine> findLowStockMedicinesWithDetails(@Param("threshold") int threshold);
 
+    @Query("SELECT m FROM Medicine m LEFT JOIN FETCH m.category LEFT JOIN FETCH m.supplier " +
+           "WHERE m.status = 'ACTIVE' AND m.expiryDate IS NOT NULL " +
+           "AND m.expiryDate >= :start AND m.expiryDate <= :end " +
+           "ORDER BY m.expiryDate ASC, m.medicineName ASC")
+    List<Medicine> findNearExpiryMedicinesWithDetails(@Param("start") LocalDate start, @Param("end") LocalDate end);
+
     @Query("SELECT SUM(m.currentStock * m.purchasePrice) FROM Medicine m WHERE m.status = 'ACTIVE'")
     java.math.BigDecimal calculateInventoryValuation();
 }

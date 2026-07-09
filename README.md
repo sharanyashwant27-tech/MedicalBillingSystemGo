@@ -8,7 +8,7 @@ Enterprise-level Medical Shop Billing System built with **Java 21**, **Spring Bo
 - JWT Authentication with role-based access (Admin, Pharmacist, Cashier)
 - Medicine, Category, Supplier, Customer master modules
 - Purchase & Sales billing with automatic inventory updates
-- Inventory management (low stock when quantity **< 10**, expiry alerts)
+- Inventory management (low stock when quantity **< 10**, near expiry within **30 days**, expired medicines)
 - Reports with Excel/CSV/PDF export
 - Prescription upload, returns processing
 - User management, shop settings
@@ -28,14 +28,16 @@ Enterprise-level Medical Shop Billing System built with **Java 21**, **Spring Bo
 
 ### UI & DevOps
 - **MediBill branding** — Logo + name in the sidebar (links to dashboard on every page); same branding on login/logout pages
-- **Low stock alerts (< 10 units)** — Navbar bell with badge, inline message, and dropdown panel; dashboard table with medicine details; SMS/email on threshold crossing + scheduled digest (9 AM & 5 PM)
+- **Low stock alerts (< 10 units)** — Navbar bell (unread highlight + read history list), inline message, dropdown panel; dashboard table; SMS/email on threshold crossing + scheduled digest (9 AM & 5 PM)
+- **Near expiry alerts (30 days)** — Bell notifications, dashboard stat card + table, dedicated list page; medicines expiring within 30 days highlighted in inventory
+- **Expired medicines** — Clickable dashboard card, summary table, and `/expired-medicines` list page
 - Dark mode, dashboard charts, notification alerts
 - Sidebar logout with dedicated logout-success page
 - CSRF-protected login and logout forms
 - Environment-based secrets (JWT, DB, API keys) — never in URLs or source code
 - URL query-string blocking for credentials and security keys (POST body and headers still work)
 - Docker & Docker Compose deployment (port **8085** on host → 8080 in container)
-- Unit and integration tests (9 test classes)
+- Unit and integration tests (10 test classes)
 
 ## Prerequisites
 
@@ -95,6 +97,8 @@ Both `medical-billing-mysql` and `medical-billing-app` should show **healthy**.
 | Application | http://localhost:8085 |
 | Login page | http://localhost:8085/login |
 | Dashboard | http://localhost:8085/dashboard |
+| Near expiry list | http://localhost:8085/near-expiry-medicines |
+| Expired medicines list | http://localhost:8085/expired-medicines |
 
 ### 4. Log in
 
@@ -112,7 +116,13 @@ Credentials are accepted only via the **login form (POST with CSRF token)** or *
 
 After login, open the **Dashboard** at http://localhost:8085/dashboard. The **MediBill** logo in the left sidebar links back to the dashboard from any page.
 
-**Low stock notifications:** When any medicine has **fewer than 10 units** in stock, the **bell icon** in the top navbar shows a red badge, an inline message (e.g. `Low stock — Paracetamol: only 3 left`), and a dropdown with full details. Configure shop **phone** and **email** under **Settings** to receive SMS/email alerts.
+**Inventory notifications (bell icon):** The navbar **bell** shows **unread** alerts with a red badge and inline message for:
+- **Low stock** — fewer than 10 units
+- **Near expiry** — expiring within 30 days
+
+Open the bell dropdown to view alerts in a **listed format**. After you close the panel, alerts are marked **read** (no bell highlight; items appear muted with a “Read” label). New or changed alerts become unread again.
+
+**Dashboard pages:** Click **Near Expiry (30 days)** or **Expired Medicines** stat cards to open filtered list pages. Configure shop **phone** and **email** under **Settings** for SMS/email low stock alerts.
 
 ### Docker commands
 
@@ -147,7 +157,7 @@ docker inspect --format='{{.State.Health.Status}}' medical-billing-app
 
 | Service | Container name | Host port | Description |
 |---------|----------------|-----------|-------------|
-| `app` | medical-billing-app | **8085** → 8080 | Spring Boot app (`medical-billing-system:1.0.1`, profile `docker`) |
+| `app` | medical-billing-app | **8085** → 8080 | Spring Boot app (`medical-billing-system:1.0.2`, profile `docker`) |
 | `mysql` | medical-billing-mysql | (internal only) | MySQL 8.0 database |
 
 **Persistent volumes**
@@ -173,6 +183,7 @@ Environment variables (set in `.env` — never commit real values or pass them i
 | `APP_WHATSAPP_API_TOKEN` | No | WhatsApp API token |
 | `APP_LOW_STOCK_NOTIFY_ENABLED` | No | Enable low stock SMS/email alerts (default: `true`) |
 | `APP_LOW_STOCK_THRESHOLD` | No | Alert when stock is below this quantity (default: `10`) |
+| `APP_NEAR_EXPIRY_DAYS` | No | Flag medicines expiring within this many days (default: `30`) |
 
 > Security keys (`APP_JWT_SECRET`, API keys, DB passwords) are loaded from environment variables only. The application **rejects** any attempt to pass them as URL query parameters.
 
@@ -185,7 +196,9 @@ Environment variables (set in `.env` — never commit real values or pass them i
 | `Access denied for user 'root'` after changing `.env` | MySQL volume still has the old password | Use the original password or reset: `docker compose down -v` then `docker compose up --build -d` |
 | Whitelabel Error Page (500) after code changes | Stale Docker image | `docker compose up --build -d app`, then hard-refresh the browser (Ctrl+Shift+R) |
 | Logo or UI changes not visible | Browser or image cache | `docker compose up --build -d app`, then hard-refresh (Ctrl+F5) |
-| Bell icon shows no low stock alerts | Stock ≥ 10 or not logged in | Reduce a medicine below 10 units in **Medicines** or **Billing**; bell loads via `/api/notifications/low-stock` |
+| Bell icon shows no alerts | No matching stock/expiry or not logged in | Set medicine stock below 10 or expiry within 30 days; bell loads `/api/notifications/inventory-alerts` |
+| Bell stays highlighted after viewing | Panel not closed | Close the dropdown (click outside or bell again) to mark alerts as read |
+| Near expiry / expired pages empty | No matching medicines | Set expiry dates in **Medicines**; use `/near-expiry-medicines` or `/expired-medicines` |
 | SMS low stock alerts not received | SMS provider disabled | Set `app.sms.enabled=true` and `APP_SMS_API_KEY`; without SMS, alerts are logged/simulated in app logs |
 | Login returns `400 Bad Request` | Missing CSRF token or blocked query params | Use the login form at `/login`; do not append `?username=` or `?password=` to the URL |
 | `Connection refused` on port 8085 | App still starting or crashed | `docker compose logs -f app` and wait for `Started MedicalBillingApplication` |
@@ -200,8 +213,9 @@ To inspect assets inside the running container:
 # Verify MediBill logo is packaged in the image
 docker exec medical-billing-app unzip -l /app/app.jar | grep medibill-logo
 
-# Verify low stock notification service is in the image
+# Verify notification services are in the image
 docker exec medical-billing-app unzip -l /app/app.jar | grep LowStockNotification
+docker exec medical-billing-app unzip -l /app/app.jar | grep NearExpiryNotification
 
 # Inspect a Thymeleaf template
 docker exec medical-billing-app unzip -p /app/app.jar BOOT-INF/classes/templates/categories.html
@@ -215,6 +229,9 @@ Add to `.env` or Docker environment (never in URLs or committed files):
 # Low stock (default threshold: 10 units)
 APP_LOW_STOCK_NOTIFY_ENABLED=true
 APP_LOW_STOCK_THRESHOLD=10
+
+# Near expiry (default: within 30 days)
+APP_NEAR_EXPIRY_DAYS=30
 
 # SMS (low stock digest at 9 AM & 5 PM, instant alert when stock crosses threshold)
 app.sms.enabled=true
@@ -289,7 +306,7 @@ MedicalBillingSystem/
 │   ├── exception/             # Global exception handling
 │   ├── repository/            # Spring Data JPA repositories
 │   ├── security/              # JWT filter, query-string secret blocking
-│   ├── service/               # Business logic (incl. LowStockNotificationService)
+│   ├── service/               # Business logic (incl. LowStockNotificationService, NearExpiryNotificationService)
 │   └── util/                  # JWT, code generators
 ├── src/main/resources/
 │   ├── application.properties
@@ -329,11 +346,19 @@ curl http://localhost:8085/api/dashboard \
 
 > Sending `username`, `password`, `token`, `jwt`, `api_key`, `secret`, or similar values as URL query parameters is **blocked** by the application. Use POST body or `Authorization` header only.
 
-### Low stock API (authenticated)
+### Inventory notification API (authenticated)
 
 ```bash
+# Combined low stock + near expiry alerts (used by navbar bell)
+curl http://localhost:8085/api/notifications/inventory-alerts \
+  -H "Authorization: Bearer <token>"
+
 # List medicines below threshold (default: 10 units)
 curl http://localhost:8085/api/notifications/low-stock \
+  -H "Authorization: Bearer <token>"
+
+# List medicines expiring within 30 days (configurable)
+curl http://localhost:8085/api/notifications/near-expiry \
   -H "Authorization: Bearer <token>"
 
 # Manually trigger daily low stock digest (SMS/email)
@@ -350,7 +375,7 @@ curl -X POST http://localhost:8085/api/notifications/low-stock/digest \
 - Use named volumes for persistent data (`mysql_data`, `app_uploads`, `app_backups`)
 - Put a reverse proxy (Nginx/Traefik) in front for HTTPS
 - Rebuild the image as part of your deploy pipeline: `docker compose build app && docker compose up -d app`
-- Image tag: `medical-billing-system:1.0.1` (see `docker-compose.yml`)
+- Image tag: `medical-billing-system:1.0.2` (see `docker-compose.yml`)
 - Monitor health: `docker compose ps` — both services should report **healthy**
 
 ### JAR deployment

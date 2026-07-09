@@ -42,17 +42,17 @@
     <h5 class="page-title mb-0" th:text="${pageTitle}">Dashboard</h5>
     <div class="navbar-actions">
         <div class="notification-wrap" id="notificationWrap">
-            <button type="button" class="notification-bell-btn" id="notificationBell" title="Low stock alerts (below 10 units)" aria-label="Notifications">
+            <button type="button" class="notification-bell-btn" id="notificationBell" title="Inventory alerts: low stock and near expiry" aria-label="Notifications">
                 <i class="bi bi-bell" id="notificationBellIcon"></i>
                 <span class="notification-badge" id="alertCount">0</span>
             </button>
             <div class="notification-panel" id="notificationPanel">
                 <div class="notification-panel-header">
                     <div>
-                        <strong>Low Stock Alerts</strong>
-                        <div class="small text-muted">Medicines with less than 10 units</div>
+                        <strong id="notificationPanelTitle">Inventory Alerts</strong>
+                        <div class="small text-muted" id="notificationPanelSubtitle">Low stock (&lt;10 units) and near expiry (30 days)</div>
                     </div>
-                    <a th:href="@{/inventory(filter='LOW_STOCK')}" class="small">View all</a>
+                    <a th:href="@{/inventory}" class="small">Inventory</a>
                 </div>
                 <div class="notification-panel-body" id="notificationList">
                     <p class="text-muted small mb-0">Loading alerts...</p>

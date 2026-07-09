@@ -234,12 +234,23 @@ body {
     cursor: pointer;
 }
 
+.notification-wrap.has-unread-alerts .notification-message,
 .notification-wrap.has-alerts .notification-message {
     display: inline-block;
 }
 
+.notification-wrap.has-unread-alerts .notification-message,
+.notification-wrap.has-alerts .notification-message {
+    color: #dc3545;
+}
+
+.notification-wrap.has-unread-alerts .notification-message:hover,
 .notification-wrap.has-alerts .notification-message:hover {
     text-decoration: underline;
+}
+
+.notification-message.is-read {
+    display: none !important;
 }
 
 .notification-bell-btn {
@@ -265,6 +276,7 @@ body {
     background: var(--primary-green-light);
 }
 
+.notification-bell-btn.has-unread-alerts,
 .notification-bell-btn.has-alerts {
     color: #dc3545;
     border-color: #f5c2c7;
@@ -272,8 +284,25 @@ body {
     animation: bellPulse 2s infinite;
 }
 
+.notification-bell-btn.has-unread-alerts:hover,
 .notification-bell-btn.has-alerts:hover {
     background: #ffe3e3;
+}
+
+.notification-bell-btn.is-read-state {
+    animation: none;
+    color: #6c757d;
+    border-color: #e9ecef;
+    background: #fff;
+}
+
+.notification-bell-btn.is-read-state .notification-badge {
+    display: none !important;
+}
+
+.notification-panel-list .notification-item {
+    display: block;
+    list-style: none;
 }
 
 .notification-badge {
@@ -294,8 +323,57 @@ body {
     box-shadow: 0 2px 8px rgba(220, 53, 69, 0.35);
 }
 
+.notification-bell-btn.has-unread-alerts .notification-badge,
 .notification-bell-btn.has-alerts .notification-badge {
     display: inline-block;
+}
+
+.notification-panel.is-read-panel .notification-panel-header {
+    background: #fff;
+}
+
+.notification-panel-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.notification-section-title {
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    padding: 8px 10px 4px;
+    margin: 0;
+}
+
+.notification-section-title.unread-low-stock { color: #dc3545; }
+.notification-section-title.unread-near-expiry { color: #0a58ca; }
+.notification-section-title.read-section {
+    color: #6c757d;
+    font-weight: 600;
+}
+
+.notification-item-read {
+    border-left-color: #dee2e6 !important;
+    background: #f8f9fa !important;
+    color: #495057;
+}
+
+.notification-item-read .notification-item-title {
+    font-weight: 500;
+    color: #495057;
+}
+
+.notification-read-badge {
+    font-size: 0.65rem;
+    font-weight: 600;
+    color: #6c757d;
+    background: #e9ecef;
+    border-radius: 999px;
+    padding: 2px 8px;
+    margin-left: 6px;
+    vertical-align: middle;
 }
 
 @keyframes bellPulse {
@@ -349,6 +427,11 @@ body {
     background: #fff5f5;
 }
 
+.notification-item.info {
+    border-left-color: #0dcaf0;
+    background: #f0faff;
+}
+
 .notification-item-title {
     font-weight: 600;
     margin-bottom: 4px;
@@ -370,10 +453,32 @@ body {
     color: #e9ecef;
 }
 
+[data-theme="dark"] .notification-bell-btn.is-read-state {
+    background: var(--card-bg, #2d3238);
+    border-color: #444;
+    color: #adb5bd;
+}
+
+[data-theme="dark"] .notification-bell-btn.has-unread-alerts,
 [data-theme="dark"] .notification-bell-btn.has-alerts {
     background: rgba(220, 53, 69, 0.15);
     border-color: rgba(220, 53, 69, 0.35);
     color: #ff8a8a;
+}
+
+[data-theme="dark"] .notification-item-read {
+    background: rgba(255, 255, 255, 0.05) !important;
+    border-left-color: #555 !important;
+    color: #ced4da;
+}
+
+[data-theme="dark"] .notification-item-read .notification-item-title {
+    color: #dee2e6;
+}
+
+[data-theme="dark"] .notification-read-badge {
+    background: #495057;
+    color: #dee2e6;
 }
 
 [data-theme="dark"] .notification-panel {
@@ -392,6 +497,10 @@ body {
 
 [data-theme="dark"] .notification-item.danger {
     background: rgba(220, 53, 69, 0.12);
+}
+
+[data-theme="dark"] .notification-item.info {
+    background: rgba(13, 202, 240, 0.12);
 }
 
 .content-area { padding: 25px; flex: 1; }
@@ -414,6 +523,9 @@ body {
     display: block;
     color: inherit;
     text-decoration: none;
+    cursor: pointer;
+    position: relative;
+    z-index: 2;
 }
 
 .stat-card-link:hover {

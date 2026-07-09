@@ -28,6 +28,7 @@ public class DashboardService {
     private final SupplierRepository supplierRepository;
     private final PaymentRepository paymentRepository;
     private final LowStockNotificationService lowStockNotificationService;
+    private final NearExpiryNotificationService nearExpiryNotificationService;
 
     @Transactional(readOnly = true)
     public DtoModels.DashboardResponse getDashboardData() {
@@ -41,6 +42,7 @@ public class DashboardService {
         BigDecimal todayProfit = calculateTodayProfit(todaySaleList);
 
         long lowStock = lowStockNotificationService.countLowStockMedicines();
+        long nearExpiry = nearExpiryNotificationService.countNearExpiryMedicines();
         long expired = medicineRepository.findByExpiryDateBefore(LocalDate.now()).size();
 
         List<DtoModels.AlertItem> alerts = buildAlerts();
@@ -62,6 +64,7 @@ public class DashboardService {
                 .todayProfit(todayProfit)
                 .availableMedicines(medicineRepository.countActiveMedicines())
                 .lowStockMedicines(lowStock)
+                .nearExpiryMedicines(nearExpiry)
                 .expiredMedicines(expired)
                 .totalCustomers(customerRepository.count())
                 .totalSuppliers(supplierRepository.count())
@@ -85,12 +88,7 @@ public class DashboardService {
 
     private List<DtoModels.AlertItem> buildAlerts() {
         List<DtoModels.AlertItem> alerts = new ArrayList<>(lowStockNotificationService.getDetailedLowStockAlerts());
-        List<Medicine> nearExpiry = medicineRepository.findByExpiryDateBetween(
-                LocalDate.now(), LocalDate.now().plusDays(30));
-        for (Medicine m : nearExpiry) {
-            alerts.add(toExpiryAlert(m, "NEAR_EXPIRY",
-                    m.getMedicineName() + " expires on " + m.getExpiryDate(), "warning"));
-        }
+        alerts.addAll(nearExpiryNotificationService.getDetailedNearExpiryAlerts());
 
         List<Medicine> expired = medicineRepository.findByExpiryDateBefore(LocalDate.now());
         for (Medicine m : expired) {

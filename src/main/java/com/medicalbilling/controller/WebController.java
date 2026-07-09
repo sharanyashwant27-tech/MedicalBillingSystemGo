@@ -101,10 +101,28 @@ public class WebController {
 
     @GetMapping("/inventory")
     public String inventory(Model model, @RequestParam(required = false) String filter) {
+        return renderInventory(model, filter);
+    }
+
+    @GetMapping("/expired-medicines")
+    public String expiredMedicines(Model model) {
+        return renderInventory(model, "EXPIRED");
+    }
+
+    @GetMapping("/near-expiry-medicines")
+    public String nearExpiryMedicines(Model model) {
+        return renderInventory(model, "NEAR_EXPIRY");
+    }
+
+    private String renderInventory(Model model, String filter) {
         String normalizedFilter = filter != null ? filter.toUpperCase() : "ALL";
         model.addAttribute("inventory", inventoryService.getInventorySummary(filter));
         model.addAttribute("filter", normalizedFilter);
-        model.addAttribute("pageTitle", "EXPIRED".equals(normalizedFilter) ? "Expired Medicines" : "Inventory");
+        model.addAttribute("pageTitle", switch (normalizedFilter) {
+            case "EXPIRED" -> "Expired Medicines";
+            case "NEAR_EXPIRY" -> "Near Expiry Medicines (30 Days)";
+            default -> "Inventory";
+        });
         model.addAttribute("activePage", "inventory");
         return "inventory";
     }

@@ -18,7 +18,9 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
+import static org.hamcrest.Matchers.containsString;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest
@@ -62,6 +64,38 @@ class WebControllerPageTest {
     void inventoryPageRenders() throws Exception {
         mockMvc.perform(get("/inventory"))
                 .andExpect(status().isOk());
+    }
+
+    @Test
+    @WithMockUser(username = "admin", roles = "ADMIN")
+    void inventoryExpiredFilterRenders() throws Exception {
+        mockMvc.perform(get("/inventory").param("filter", "EXPIRED"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Expired Medicines List")));
+    }
+
+    @Test
+    @WithMockUser(username = "admin", roles = "ADMIN")
+    void expiredMedicinesPageRenders() throws Exception {
+        mockMvc.perform(get("/expired-medicines"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Expired Medicines List")));
+    }
+
+    @Test
+    @WithMockUser(username = "admin", roles = "ADMIN")
+    void dashboardExpiredMedicinesLinkRenders() throws Exception {
+        mockMvc.perform(get("/dashboard"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("/expired-medicines")));
+    }
+
+    @Test
+    @WithMockUser(username = "admin", roles = "ADMIN")
+    void nearExpiryMedicinesPageRenders() throws Exception {
+        mockMvc.perform(get("/near-expiry-medicines"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Near Expiry Medicines")));
     }
 
     @Test
