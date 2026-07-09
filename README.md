@@ -31,6 +31,7 @@ Enterprise-level Medical Shop Billing System built with **Java 21**, **Spring Bo
 - **Low stock alerts (< 10 units)** — Navbar bell (unread highlight + read history list), inline message, dropdown panel; dashboard table; SMS/email on threshold crossing + scheduled digest (9 AM & 5 PM)
 - **Near expiry alerts (30 days)** — Bell notifications, dashboard stat card + table, dedicated list page; medicines expiring within 30 days highlighted in inventory
 - **Expired medicines** — Clickable dashboard card, summary table, and `/expired-medicines` list page
+- **Dashboard master links** — Customers and Suppliers stat cards link to `/customers` and `/suppliers` CRUD pages; sidebar Suppliers link uses a plain `href` fallback for reliable navigation
 - Dark mode, dashboard charts, notification alerts
 - Sidebar logout with dedicated logout-success page
 - CSRF-protected login and logout forms
@@ -99,6 +100,8 @@ Both `medical-billing-mysql` and `medical-billing-app` should show **healthy**.
 | Dashboard | http://localhost:8085/dashboard |
 | Near expiry list | http://localhost:8085/near-expiry-medicines |
 | Expired medicines list | http://localhost:8085/expired-medicines |
+| Customers (CRUD) | http://localhost:8085/customers |
+| Suppliers (CRUD) | http://localhost:8085/suppliers |
 
 ### 4. Log in
 
@@ -122,7 +125,7 @@ After login, open the **Dashboard** at http://localhost:8085/dashboard. The **Me
 
 Open the bell dropdown to view alerts in a **listed format**. After you close the panel, alerts are marked **read** (no bell highlight; items appear muted with a “Read” label). New or changed alerts become unread again.
 
-**Dashboard pages:** Click **Near Expiry (30 days)** or **Expired Medicines** stat cards to open filtered list pages. Configure shop **phone** and **email** under **Settings** for SMS/email low stock alerts.
+**Dashboard pages:** Click **Near Expiry (30 days)** or **Expired Medicines** stat cards to open filtered list pages. Click **Customers** or **Suppliers** stat cards (or use the sidebar **Suppliers** link) to open master CRUD pages. Configure shop **phone** and **email** under **Settings** for SMS/email low stock alerts.
 
 ### Docker commands
 
@@ -157,7 +160,7 @@ docker inspect --format='{{.State.Health.Status}}' medical-billing-app
 
 | Service | Container name | Host port | Description |
 |---------|----------------|-----------|-------------|
-| `app` | medical-billing-app | **8085** → 8080 | Spring Boot app (`medical-billing-system:1.0.2`, profile `docker`) |
+| `app` | medical-billing-app | **8085** → 8080 | Spring Boot app (`medical-billing-system:1.0.3`, profile `docker`) |
 | `mysql` | medical-billing-mysql | (internal only) | MySQL 8.0 database |
 
 **Persistent volumes**
@@ -195,6 +198,7 @@ Environment variables (set in `.env` — never commit real values or pass them i
 | `MYSQL_ROOT_PASSWORD` variable is not set | No `.env` file | Run `cp .env.example .env` and fill in all required values |
 | `Access denied for user 'root'` after changing `.env` | MySQL volume still has the old password | Use the original password or reset: `docker compose down -v` then `docker compose up --build -d` |
 | Whitelabel Error Page (500) after code changes | Stale Docker image | `docker compose up --build -d app`, then hard-refresh the browser (Ctrl+Shift+R) |
+| Dashboard stat card link not working | Stale Docker image or browser cache | `docker compose up --build -d app`, then hard-refresh (Ctrl+F5); Customers/Suppliers cards use full-width `stat-card-link` wrappers |
 | Logo or UI changes not visible | Browser or image cache | `docker compose up --build -d app`, then hard-refresh (Ctrl+F5) |
 | Bell icon shows no alerts | No matching stock/expiry or not logged in | Set medicine stock below 10 or expiry within 30 days; bell loads `/api/notifications/inventory-alerts` |
 | Bell stays highlighted after viewing | Panel not closed | Close the dropdown (click outside or bell again) to mark alerts as read |
@@ -375,7 +379,7 @@ curl -X POST http://localhost:8085/api/notifications/low-stock/digest \
 - Use named volumes for persistent data (`mysql_data`, `app_uploads`, `app_backups`)
 - Put a reverse proxy (Nginx/Traefik) in front for HTTPS
 - Rebuild the image as part of your deploy pipeline: `docker compose build app && docker compose up -d app`
-- Image tag: `medical-billing-system:1.0.2` (see `docker-compose.yml`)
+- Image tag: `medical-billing-system:1.0.3` (see `docker-compose.yml`)
 - Monitor health: `docker compose ps` — both services should report **healthy**
 
 ### JAR deployment

@@ -108,6 +108,22 @@ class WebControllerPageTest {
 
     @Test
     @WithMockUser(username = "admin", roles = "ADMIN")
+    void dashboardSuppliersLinkRenders() throws Exception {
+        mockMvc.perform(get("/dashboard"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("/suppliers")));
+    }
+
+    @Test
+    @WithMockUser(username = "admin", roles = "ADMIN")
+    void suppliersPageRenders() throws Exception {
+        mockMvc.perform(get("/suppliers"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Supplier Master")));
+    }
+
+    @Test
+    @WithMockUser(username = "admin", roles = "ADMIN")
     void categoriesPageRenders() throws Exception {
         mockMvc.perform(get("/categories"))
                 .andExpect(status().isOk());

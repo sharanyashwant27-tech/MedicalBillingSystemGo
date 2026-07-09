@@ -13,7 +13,7 @@
         <li><a th:href="@{/billing}" th:classappend="${activePage == 'billing'} ? 'active' : ''"><i class="bi bi-receipt"></i> Billing</a></li>
         <li><a th:href="@{/medicines}" th:classappend="${activePage == 'medicines'} ? 'active' : ''"><i class="bi bi-capsule"></i> Medicines</a></li>
         <li><a th:href="@{/categories}" th:classappend="${activePage == 'categories'} ? 'active' : ''"><i class="bi bi-tags"></i> Categories</a></li>
-        <li><a th:href="@{/suppliers}" th:classappend="${activePage == 'suppliers'} ? 'active' : ''"><i class="bi bi-truck"></i> Suppliers</a></li>
+        <li><a th:href="@{/suppliers}" href="/suppliers" th:classappend="${activePage == 'suppliers'} ? 'active' : ''"><i class="bi bi-truck"></i> Suppliers</a></li>
         <li><a th:href="@{/customers}" th:classappend="${activePage == 'customers'} ? 'active' : ''"><i class="bi bi-people"></i> Customers</a></li>
         <li><a th:href="@{/purchases}" th:classappend="${activePage == 'purchases'} ? 'active' : ''"><i class="bi bi-bag-plus"></i> Purchases</a></li>
         <li><a th:href="@{/inventory}" th:classappend="${activePage == 'inventory'} ? 'active' : ''"><i class="bi bi-boxes"></i> Inventory</a></li>

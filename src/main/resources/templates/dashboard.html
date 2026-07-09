@@ -51,7 +51,7 @@
 
             <div class="row g-4 mb-4">
                 <div class="col-md-3 col-sm-6">
-                    <a th:href="@{/expired-medicines}" class="stat-card-link" title="View expired medicines list">
+                    <a th:href="@{/expired-medicines}" href="/expired-medicines" class="stat-card-link" title="View expired medicines list">
                         <div class="stat-card card-expired">
                             <div class="stat-icon"><i class="bi bi-calendar-x"></i></div>
                             <div class="stat-info">
@@ -62,7 +62,7 @@
                     </a>
                 </div>
                 <div class="col-md-3 col-sm-6">
-                    <a th:href="@{/near-expiry-medicines}" class="stat-card-link" title="View medicines expiring within 30 days">
+                    <a th:href="@{/near-expiry-medicines}" href="/near-expiry-medicines" class="stat-card-link" title="View medicines expiring within 30 days">
                         <div class="stat-card card-alert">
                             <div class="stat-icon"><i class="bi bi-calendar-event"></i></div>
                             <div class="stat-info">
@@ -84,13 +84,15 @@
                     </a>
                 </div>
                 <div class="col-md-3 col-sm-6">
-                    <div class="stat-card">
-                        <div class="stat-icon"><i class="bi bi-truck"></i></div>
-                        <div class="stat-info">
-                            <h6>Suppliers</h6>
-                            <h3 th:text="${dashboard.totalSuppliers}">0</h3>
+                    <a th:href="@{/suppliers}" href="/suppliers" class="stat-card-link" title="Manage suppliers — add, edit, and delete" aria-label="Open suppliers page">
+                        <div class="stat-card card-medicines">
+                            <div class="stat-icon"><i class="bi bi-truck"></i></div>
+                            <div class="stat-info">
+                                <h6>Suppliers</h6>
+                                <h3 th:text="${dashboard.totalSuppliers}">0</h3>
+                            </div>
                         </div>
-                    </div>
+                    </a>
                 </div>
             </div>
 
