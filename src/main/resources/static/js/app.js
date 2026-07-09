@@ -51,15 +51,19 @@ function updateDarkModeIcon(theme) {
 }
 
 let lastLowStockAlerts = [];
+let notificationLoadGeneration = 0;
 const LOW_STOCK_SEEN_KEY = 'medibill.lowStockAlertsSeenFingerprint';
 
 function getAlertsFingerprint(alerts) {
-    if (!alerts || !alerts.length) {
+    if (!Array.isArray(alerts) || !alerts.length) {
         return '';
     }
 
     return alerts
-        .map(alert => `${alert.medicineId || alert.medicineCode || alert.medicineName}:${alert.currentStock}`)
+        .map(alert => {
+            const id = alert.medicineId ?? alert.medicineCode ?? alert.medicineName ?? 'unknown';
+            return `${String(id)}:${String(alert.currentStock ?? 0)}`;
+        })
         .sort()
         .join('|');
 }
@@ -146,12 +150,29 @@ function setupNotificationBell() {
         });
     }
 
+    panel.addEventListener('click', (event) => {
+        event.stopPropagation();
+    });
+
     document.addEventListener('click', (event) => {
         const wrap = document.getElementById('notificationWrap');
         if (wrap && !wrap.contains(event.target)) {
-            panel.classList.remove('show');
+            closeNotificationPanel(true);
         }
     });
+}
+
+function closeNotificationPanel(markSeen) {
+    const panel = document.getElementById('notificationPanel');
+    if (!panel || !panel.classList.contains('show')) {
+        return;
+    }
+
+    if (markSeen) {
+        markAlertsAsSeen(lastLowStockAlerts);
+    }
+
+    panel.classList.remove('show');
 }
 
 async function toggleNotificationPanel() {
@@ -161,35 +182,57 @@ async function toggleNotificationPanel() {
     }
 
     const isOpening = !panel.classList.contains('show');
-    panel.classList.toggle('show');
 
-    if (isOpening) {
-        await loadNotifications();
-        markAlertsAsSeen(lastLowStockAlerts);
-    }
-}
-
-async function loadNotifications() {
-    if (typeof API === 'undefined') {
+    if (!isOpening) {
+        closeNotificationPanel(true);
         return;
     }
 
+    markAlertsAsSeen(lastLowStockAlerts);
+    panel.classList.add('show');
+    await loadNotifications({ updateBell: false });
+    markAlertsAsSeen(lastLowStockAlerts);
+}
+
+async function loadNotifications(options = {}) {
+    const { updateBell = true } = options;
+
+    if (typeof API === 'undefined') {
+        return lastLowStockAlerts;
+    }
+
+    const generation = ++notificationLoadGeneration;
+
     try {
         const lowStockAlerts = await API.get('/api/notifications/low-stock');
-        lastLowStockAlerts = lowStockAlerts || [];
+        if (generation !== notificationLoadGeneration) {
+            return lastLowStockAlerts;
+        }
+
+        lastLowStockAlerts = Array.isArray(lowStockAlerts) ? lowStockAlerts : [];
         renderNotificationPanel(lastLowStockAlerts);
-        updateNotificationBell(lastLowStockAlerts);
+        if (updateBell) {
+            updateNotificationBell(lastLowStockAlerts);
+        }
     } catch (e) {
         try {
             const data = await API.get('/api/dashboard');
+            if (generation !== notificationLoadGeneration) {
+                return lastLowStockAlerts;
+            }
+
             const alerts = (data.alerts || []).filter(alert => alert.type === 'LOW_STOCK');
             lastLowStockAlerts = alerts;
             renderNotificationPanel(alerts);
-            updateNotificationBell(alerts);
+            if (updateBell) {
+                updateNotificationBell(alerts);
+            }
         } catch (ignored) {
             // Dashboard API may not be available on login page
         }
     }
+
+    return lastLowStockAlerts;
 }
 
 function buildBellMessage(lowStockAlerts) {
