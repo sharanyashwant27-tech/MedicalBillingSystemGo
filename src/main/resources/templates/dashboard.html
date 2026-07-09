@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head th:replace="~{fragments/head :: head('Dashboard')}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+</head>
+<body>
+<div class="app-wrapper">
+    <nav th:replace="~{fragments/layout :: sidebar}"></nav>
+    <div class="main-content">
+        <header th:replace="~{fragments/layout :: navbar}"></header>
+        <div class="content-area">
+            <!-- Stats Cards -->
+            <div class="row g-4 mb-4">
+                <div class="col-md-3 col-sm-6">
+                    <div class="stat-card card-sales animate-slide-up">
+                        <div class="stat-icon"><i class="bi bi-currency-rupee"></i></div>
+                        <div class="stat-info">
+                            <h6>Today's Sales</h6>
+                            <h3 th:text="'₹' + ${dashboard.todaySales}">₹0</h3>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3 col-sm-6">
+                    <div class="stat-card card-profit animate-slide-up" style="animation-delay: 0.1s">
+                        <div class="stat-icon"><i class="bi bi-graph-up-arrow"></i></div>
+                        <div class="stat-info">
+                            <h6>Today's Profit</h6>
+                            <h3 th:text="'₹' + ${dashboard.todayProfit}">₹0</h3>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3 col-sm-6">
+                    <div class="stat-card card-medicines animate-slide-up" style="animation-delay: 0.2s">
+                        <div class="stat-icon"><i class="bi bi-capsule"></i></div>
+                        <div class="stat-info">
+                            <h6>Available Medicines</h6>
+                            <h3 th:text="${dashboard.availableMedicines}">0</h3>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3 col-sm-6">
+                    <div class="stat-card card-alert animate-slide-up" style="animation-delay: 0.3s">
+                        <div class="stat-icon"><i class="bi bi-exclamation-triangle"></i></div>
+                        <div class="stat-info">
+                            <h6>Low Stock</h6>
+                            <h3 th:text="${dashboard.lowStockMedicines}">0</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row g-4 mb-4">
+                <div class="col-md-3 col-sm-6">
+                    <div class="stat-card card-expired">
+                        <div class="stat-icon"><i class="bi bi-calendar-x"></i></div>
+                        <div class="stat-info">
+                            <h6>Expired Medicines</h6>
+                            <h3 th:text="${dashboard.expiredMedicines}">0</h3>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3 col-sm-6">
+                    <div class="stat-card">
+                        <div class="stat-icon"><i class="bi bi-people"></i></div>
+                        <div class="stat-info">
+                            <h6>Customers</h6>
+                            <h3 th:text="${dashboard.totalCustomers}">0</h3>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3 col-sm-6">
+                    <div class="stat-card">
+                        <div class="stat-icon"><i class="bi bi-truck"></i></div>
+                        <div class="stat-info">
+                            <h6>Suppliers</h6>
+                            <h3 th:text="${dashboard.totalSuppliers}">0</h3>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3 col-sm-6">
+                    <div class="stat-card">
+                        <div class="stat-icon"><i class="bi bi-clock-history"></i></div>
+                        <div class="stat-info">
+                            <h6>Pending Payments</h6>
+                            <h3 th:text="${dashboard.pendingPayments}">0</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="card mb-4">
+                <div class="card-header"><h5><i class="bi bi-lightning"></i> Quick Actions</h5></div>
+                <div class="card-body">
+                    <div class="quick-actions">
+                        <a th:href="@{/billing}" class="btn btn-success btn-action"><i class="bi bi-receipt"></i> Generate Bill</a>
+                        <a th:href="@{/medicines}" class="btn btn-outline-success btn-action"><i class="bi bi-plus-circle"></i> Add Medicine</a>
+                        <a th:href="@{/customers}" class="btn btn-outline-success btn-action"><i class="bi bi-person-plus"></i> Add Customer</a>
+                        <a th:href="@{/purchases}" class="btn btn-outline-success btn-action"><i class="bi bi-bag-plus"></i> Purchase Stock</a>
+                        <a th:href="@{/reports}" class="btn btn-outline-success btn-action"><i class="bi bi-file-earmark-bar-graph"></i> Reports</a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row g-4">
+                <div class="col-lg-8">
+                    <div class="card">
+                        <div class="card-header"><h5><i class="bi bi-bar-chart"></i> Sales Analytics</h5></div>
+                        <div class="card-body"><canvas id="salesChart" height="120"></canvas></div>
+                    </div>
+                </div>
+                <div class="col-lg-4">
+                    <div class="card">
+                        <div class="card-header"><h5><i class="bi bi-bell"></i> Alerts</h5></div>
+                        <div class="card-body alerts-list" id="alertsList">
+                            <div th:each="alert : ${dashboard.alerts}" class="alert-item" th:classappend="'alert-' + ${alert.severity}">
+                                <i class="bi bi-exclamation-circle"></i>
+                                <span th:text="${alert.message}">Alert</span>
+                            </div>
+                            <p th:if="${#lists.isEmpty(dashboard.alerts)}" class="text-muted">No alerts</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Bills -->
+            <div class="card mt-4">
+                <div class="card-header"><h5><i class="bi bi-receipt-cutoff"></i> Recent Bills</h5></div>
+                <div class="card-body table-responsive">
+                    <table class="table table-hover">
+                        <thead><tr><th>Bill No</th><th>Customer</th><th>Amount</th><th>Payment</th><th>Date</th></tr></thead>
+                        <tbody>
+                        <tr th:each="bill : ${dashboard.recentBills}">
+                            <td th:text="${bill.billNumber}">BILL-001</td>
+                            <td th:text="${bill.customerName}">Customer</td>
+                            <td th:text="'₹' + ${bill.grandTotal}">₹0</td>
+                            <td><span class="badge bg-success" th:text="${bill.paymentMode}">CASH</span></td>
+                            <td th:text="${#temporals.format(bill.saleDate, 'dd-MM-yyyy HH:mm')}">Date</td>
+                        </tr>
+                        <tr th:if="${#lists.isEmpty(dashboard.recentBills)}">
+                            <td colspan="5" class="text-center text-muted">No recent bills</td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <footer th:replace="~{fragments/layout :: footer}"></footer>
+    </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script th:src="@{/js/app.js}"></script>
+<script th:src="@{/js/dashboard.js}"></script>
+</body>
+</html>

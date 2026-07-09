@@ -1,0 +1,14 @@
+target/
+.git/
+.idea/
+.vscode/
+*.iml
+uploads/
+backups/
+node_modules/
+*.log
+.DS_Store
+documentation/
+database/
+*.md
+!README.md

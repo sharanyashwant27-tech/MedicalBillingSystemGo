@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<body>
+<nav th:fragment="sidebar" class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+        <i class="bi bi-heart-pulse-fill text-success"></i>
+        <span>MediBill</span>
+    </div>
+    <ul class="sidebar-nav">
+        <li><a th:href="@{/dashboard}" th:classappend="${activePage == 'dashboard'} ? 'active' : ''"><i class="bi bi-speedometer2"></i> Dashboard</a></li>
+        <li><a th:href="@{/billing}" th:classappend="${activePage == 'billing'} ? 'active' : ''"><i class="bi bi-receipt"></i> Billing</a></li>
+        <li><a th:href="@{/medicines}" th:classappend="${activePage == 'medicines'} ? 'active' : ''"><i class="bi bi-capsule"></i> Medicines</a></li>
+        <li><a th:href="@{/categories}" th:classappend="${activePage == 'categories'} ? 'active' : ''"><i class="bi bi-tags"></i> Categories</a></li>
+        <li><a th:href="@{/suppliers}" th:classappend="${activePage == 'suppliers'} ? 'active' : ''"><i class="bi bi-truck"></i> Suppliers</a></li>
+        <li><a th:href="@{/customers}" th:classappend="${activePage == 'customers'} ? 'active' : ''"><i class="bi bi-people"></i> Customers</a></li>
+        <li><a th:href="@{/purchases}" th:classappend="${activePage == 'purchases'} ? 'active' : ''"><i class="bi bi-bag-plus"></i> Purchases</a></li>
+        <li><a th:href="@{/inventory}" th:classappend="${activePage == 'inventory'} ? 'active' : ''"><i class="bi bi-boxes"></i> Inventory</a></li>
+        <li><a th:href="@{/returns}" th:classappend="${activePage == 'returns'} ? 'active' : ''"><i class="bi bi-arrow-return-left"></i> Returns</a></li>
+        <li><a th:href="@{/prescriptions}" th:classappend="${activePage == 'prescriptions'} ? 'active' : ''"><i class="bi bi-file-medical"></i> Prescriptions</a></li>
+        <li><a th:href="@{/reports}" th:classappend="${activePage == 'reports'} ? 'active' : ''"><i class="bi bi-graph-up"></i> Reports</a></li>
+        <li><a th:href="@{/online-orders}" th:classappend="${activePage == 'online-orders'} ? 'active' : ''"><i class="bi bi-cart-check"></i> Online Orders</a></li>
+        <li><a th:href="@{/reorder-suggestions}" th:classappend="${activePage == 'reorder'} ? 'active' : ''"><i class="bi bi-robot"></i> AI Reorder</a></li>
+        <li><a th:href="@{/branches}" th:classappend="${activePage == 'branches'} ? 'active' : ''"><i class="bi bi-building"></i> Branches</a></li>
+        <li><a th:href="@{/audit-logs}" th:classappend="${activePage == 'audit'} ? 'active' : ''"><i class="bi bi-shield-check"></i> Audit Logs</a></li>
+        <li sec:authorize="hasRole('ADMIN')"><a th:href="@{/users}" th:classappend="${activePage == 'users'} ? 'active' : ''"><i class="bi bi-person-gear"></i> Users</a></li>
+        <li><a th:href="@{/settings}" th:classappend="${activePage == 'settings'} ? 'active' : ''"><i class="bi bi-gear"></i> Settings</a></li>
+        <li class="sidebar-logout">
+            <form th:action="@{/logout}" method="post">
+                <button type="submit" class="sidebar-logout-btn">
+                    <i class="bi bi-box-arrow-right"></i> Logout
+                </button>
+            </form>
+        </li>
+    </ul>
+</nav>
+
+<header th:fragment="navbar" class="top-navbar">
+    <button class="btn btn-link sidebar-toggle" id="sidebarToggle"><i class="bi bi-list"></i></button>
+    <h5 class="page-title mb-0" th:text="${pageTitle}">Dashboard</h5>
+    <div class="navbar-actions">
+        <div class="notification-bell" id="notificationBell">
+            <i class="bi bi-bell"></i>
+            <span class="badge bg-danger" id="alertCount">0</span>
+        </div>
+        <button class="btn btn-sm btn-outline-secondary" id="darkModeToggle" title="Toggle Dark Mode">
+            <i class="bi bi-moon"></i>
+        </button>
+        <div class="dropdown">
+            <button class="btn btn-sm btn-success dropdown-toggle" data-bs-toggle="dropdown">
+                <i class="bi bi-person-circle"></i>
+                <span sec:authentication="name">User</span>
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end">
+                <li><a class="dropdown-item" th:href="@{/settings}"><i class="bi bi-gear"></i> Settings</a></li>
+                <li><hr class="dropdown-divider"></li>
+                <li>
+                    <form th:action="@{/logout}" method="post">
+                        <button type="submit" class="dropdown-item text-danger"><i class="bi bi-box-arrow-right"></i> Logout</button>
+                    </form>
+                </li>
+            </ul>
+        </div>
+    </div>
+</header>
+
+<footer th:fragment="footer" class="app-footer">
+    <p>&copy; 2024 Medical Billing System. All rights reserved.</p>
+</footer>
+</body>
+</html>
