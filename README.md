@@ -8,7 +8,7 @@ Enterprise-level Medical Shop Billing System built with **Java 21**, **Spring Bo
 - JWT Authentication with role-based access (Admin, Pharmacist, Cashier)
 - Medicine, Category, Supplier, Customer master modules
 - Purchase & Sales billing with automatic inventory updates
-- Inventory management (low stock, expiry alerts)
+- Inventory management (low stock when quantity **< 10**, expiry alerts)
 - Reports with Excel/CSV/PDF export
 - Prescription upload, returns processing
 - User management, shop settings
@@ -16,7 +16,7 @@ Enterprise-level Medical Shop Billing System built with **Java 21**, **Spring Bo
 ### Advanced (New)
 - **Barcode/QR code scanning** — Camera-based scanner on billing screen (html5-qrcode)
 - **Voice-enabled billing** — Web Speech API medicine search by voice
-- **SMS notifications** — Bill alerts, order updates, low stock alerts (configurable provider)
+- **SMS notifications** — Bill alerts, order updates, detailed low stock alerts (configurable provider)
 - **WhatsApp invoice sharing** — Share invoice via WhatsApp link or API
 - **Multi-branch support** — Branch management, branch-scoped users and sales
 - **AI reorder suggestions** — Sales velocity analysis with priority-based reorder recommendations
@@ -28,13 +28,14 @@ Enterprise-level Medical Shop Billing System built with **Java 21**, **Spring Bo
 
 ### UI & DevOps
 - **MediBill branding** — Logo + name in the sidebar (links to dashboard on every page); same branding on login/logout pages
+- **Low stock alerts (< 10 units)** — Navbar bell with badge, inline message, and dropdown panel; dashboard table with medicine details; SMS/email on threshold crossing + scheduled digest (9 AM & 5 PM)
 - Dark mode, dashboard charts, notification alerts
 - Sidebar logout with dedicated logout-success page
 - CSRF-protected login and logout forms
 - Environment-based secrets (JWT, DB, API keys) — never in URLs or source code
 - URL query-string blocking for credentials and security keys (POST body and headers still work)
 - Docker & Docker Compose deployment (port **8085** on host → 8080 in container)
-- Unit and integration tests (8+ test classes)
+- Unit and integration tests (9 test classes)
 
 ## Prerequisites
 
@@ -111,6 +112,8 @@ Credentials are accepted only via the **login form (POST with CSRF token)** or *
 
 After login, open the **Dashboard** at http://localhost:8085/dashboard. The **MediBill** logo in the left sidebar links back to the dashboard from any page.
 
+**Low stock notifications:** When any medicine has **fewer than 10 units** in stock, the **bell icon** in the top navbar shows a red badge, an inline message (e.g. `Low stock — Paracetamol: only 3 left`), and a dropdown with full details. Configure shop **phone** and **email** under **Settings** to receive SMS/email alerts.
+
 ### Docker commands
 
 ```bash
@@ -144,7 +147,7 @@ docker inspect --format='{{.State.Health.Status}}' medical-billing-app
 
 | Service | Container name | Host port | Description |
 |---------|----------------|-----------|-------------|
-| `app` | medical-billing-app | **8085** → 8080 | Spring Boot app (`medical-billing-system:1.0.0`, profile `docker`) |
+| `app` | medical-billing-app | **8085** → 8080 | Spring Boot app (`medical-billing-system:1.0.1`, profile `docker`) |
 | `mysql` | medical-billing-mysql | (internal only) | MySQL 8.0 database |
 
 **Persistent volumes**
@@ -168,6 +171,8 @@ Environment variables (set in `.env` — never commit real values or pass them i
 | `APP_CASHIER_PASSWORD` | Yes (first seed) | Initial cashier password |
 | `APP_SMS_API_KEY` | No | SMS provider API key |
 | `APP_WHATSAPP_API_TOKEN` | No | WhatsApp API token |
+| `APP_LOW_STOCK_NOTIFY_ENABLED` | No | Enable low stock SMS/email alerts (default: `true`) |
+| `APP_LOW_STOCK_THRESHOLD` | No | Alert when stock is below this quantity (default: `10`) |
 
 > Security keys (`APP_JWT_SECRET`, API keys, DB passwords) are loaded from environment variables only. The application **rejects** any attempt to pass them as URL query parameters.
 
@@ -180,6 +185,8 @@ Environment variables (set in `.env` — never commit real values or pass them i
 | `Access denied for user 'root'` after changing `.env` | MySQL volume still has the old password | Use the original password or reset: `docker compose down -v` then `docker compose up --build -d` |
 | Whitelabel Error Page (500) after code changes | Stale Docker image | `docker compose up --build -d app`, then hard-refresh the browser (Ctrl+Shift+R) |
 | Logo or UI changes not visible | Browser or image cache | `docker compose up --build -d app`, then hard-refresh (Ctrl+F5) |
+| Bell icon shows no low stock alerts | Stock ≥ 10 or not logged in | Reduce a medicine below 10 units in **Medicines** or **Billing**; bell loads via `/api/notifications/low-stock` |
+| SMS low stock alerts not received | SMS provider disabled | Set `app.sms.enabled=true` and `APP_SMS_API_KEY`; without SMS, alerts are logged/simulated in app logs |
 | Login returns `400 Bad Request` | Missing CSRF token or blocked query params | Use the login form at `/login`; do not append `?username=` or `?password=` to the URL |
 | `Connection refused` on port 8085 | App still starting or crashed | `docker compose logs -f app` and wait for `Started MedicalBillingApplication` |
 | Login works locally but not in Docker | Wrong port or old container | Use **8085** for Docker, **8080** for `mvn spring-boot:run` |
@@ -193,6 +200,9 @@ To inspect assets inside the running container:
 # Verify MediBill logo is packaged in the image
 docker exec medical-billing-app unzip -l /app/app.jar | grep medibill-logo
 
+# Verify low stock notification service is in the image
+docker exec medical-billing-app unzip -l /app/app.jar | grep LowStockNotification
+
 # Inspect a Thymeleaf template
 docker exec medical-billing-app unzip -p /app/app.jar BOOT-INF/classes/templates/categories.html
 ```
@@ -202,13 +212,22 @@ docker exec medical-billing-app unzip -p /app/app.jar BOOT-INF/classes/templates
 Add to `.env` or Docker environment (never in URLs or committed files):
 
 ```properties
+# Low stock (default threshold: 10 units)
+APP_LOW_STOCK_NOTIFY_ENABLED=true
+APP_LOW_STOCK_THRESHOLD=10
+
+# SMS (low stock digest at 9 AM & 5 PM, instant alert when stock crosses threshold)
 app.sms.enabled=true
 app.sms.api-url=https://your-sms-provider.com/api
 # APP_SMS_API_KEY is read from environment
+
+# WhatsApp
 app.whatsapp.enabled=true
 app.whatsapp.api-url=https://your-whatsapp-api.com
 # APP_WHATSAPP_API_TOKEN is read from environment
 ```
+
+Set **shop phone** and **email** in **Settings** so low stock alerts reach the pharmacy. Admin and pharmacist user phone numbers (if set) also receive SMS alerts.
 
 ---
 
@@ -263,14 +282,14 @@ MedicalBillingSystem/
 ├── .dockerignore              # Excludes target/, docs, and dev files from build context
 ├── pom.xml
 ├── src/main/java/com/medicalbilling/
-│   ├── config/                # Security, Web MVC, Data initializer, secret validation
+│   ├── config/                # Security, schedulers (backup, low stock digest), data initializer
 │   ├── controller/            # REST API & Thymeleaf web controllers
 │   ├── dto/                   # Data transfer objects
 │   ├── entity/                # JPA entities
 │   ├── exception/             # Global exception handling
 │   ├── repository/            # Spring Data JPA repositories
 │   ├── security/              # JWT filter, query-string secret blocking
-│   ├── service/               # Business logic layer
+│   ├── service/               # Business logic (incl. LowStockNotificationService)
 │   └── util/                  # JWT, code generators
 ├── src/main/resources/
 │   ├── application.properties
@@ -310,6 +329,18 @@ curl http://localhost:8085/api/dashboard \
 
 > Sending `username`, `password`, `token`, `jwt`, `api_key`, `secret`, or similar values as URL query parameters is **blocked** by the application. Use POST body or `Authorization` header only.
 
+### Low stock API (authenticated)
+
+```bash
+# List medicines below threshold (default: 10 units)
+curl http://localhost:8085/api/notifications/low-stock \
+  -H "Authorization: Bearer <token>"
+
+# Manually trigger daily low stock digest (SMS/email)
+curl -X POST http://localhost:8085/api/notifications/low-stock/digest \
+  -H "Authorization: Bearer <token>"
+```
+
 ## Deployment
 
 ### Docker production notes
@@ -319,7 +350,7 @@ curl http://localhost:8085/api/dashboard \
 - Use named volumes for persistent data (`mysql_data`, `app_uploads`, `app_backups`)
 - Put a reverse proxy (Nginx/Traefik) in front for HTTPS
 - Rebuild the image as part of your deploy pipeline: `docker compose build app && docker compose up -d app`
-- Image tag: `medical-billing-system:1.0.0` (see `docker-compose.yml`)
+- Image tag: `medical-billing-system:1.0.1` (see `docker-compose.yml`)
 - Monitor health: `docker compose ps` — both services should report **healthy**
 
 ### JAR deployment
