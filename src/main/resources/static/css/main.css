@@ -521,6 +521,7 @@ body {
 
 .stat-card-link {
     display: block;
+    width: 100%;
     color: inherit;
     text-decoration: none;
     cursor: pointer;
@@ -530,10 +531,20 @@ body {
 
 .stat-card-link:hover {
     color: inherit;
+    text-decoration: none;
 }
 
 .stat-card-link .stat-card {
+    width: 100%;
     height: 100%;
+    pointer-events: none;
+}
+
+.stat-card-link .stat-icon,
+.stat-card-link .stat-info,
+.stat-card-link .stat-info h6,
+.stat-card-link .stat-info h3 {
+    pointer-events: none;
 }
 
 .stat-card-link:hover .stat-card {

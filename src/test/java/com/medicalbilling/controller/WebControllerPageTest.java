@@ -100,6 +100,14 @@ class WebControllerPageTest {
 
     @Test
     @WithMockUser(username = "admin", roles = "ADMIN")
+    void dashboardCustomersLinkRenders() throws Exception {
+        mockMvc.perform(get("/dashboard"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("/customers")));
+    }
+
+    @Test
+    @WithMockUser(username = "admin", roles = "ADMIN")
     void categoriesPageRenders() throws Exception {
         mockMvc.perform(get("/categories"))
                 .andExpect(status().isOk());
