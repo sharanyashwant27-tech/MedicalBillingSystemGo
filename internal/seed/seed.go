@@ -7,7 +7,6 @@ import (
 	"github.com/medicalbilling/medical-billing-system/internal/auth"
 	"github.com/medicalbilling/medical-billing-system/internal/config"
 	"github.com/medicalbilling/medical-billing-system/internal/models"
-	"github.com/medicalbilling/medical-billing-system/internal/util"
 	"gorm.io/gorm"
 )
 
@@ -167,7 +166,6 @@ func seedMedicines(db *gorm.DB) {
 	for _, m := range medicines {
 		db.Create(&m)
 	}
-	_ = util.GenerateMedicineCode
 }
 
 func seedCustomers(db *gorm.DB) {

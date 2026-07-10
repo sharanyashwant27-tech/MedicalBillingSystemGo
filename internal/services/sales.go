@@ -2,6 +2,7 @@ package services
 
 import (
 	"math"
+	"strings"
 	"time"
 
 	"github.com/medicalbilling/medical-billing-system/internal/models"
@@ -15,29 +16,160 @@ func (s *Services) GetPurchases() ([]models.Purchase, error) {
 	return items, err
 }
 
+func (s *Services) GetPurchase(id uint) (*models.Purchase, error) {
+	var purchase models.Purchase
+	if err := s.DB.Preload("Supplier").Preload("Items.Medicine").First(&purchase, id).Error; err != nil {
+		return nil, notFound("Purchase not found")
+	}
+	return &purchase, nil
+}
+
 func (s *Services) CreatePurchase(req models.PurchaseRequest, username string) (*models.Purchase, error) {
 	pdate, err := time.Parse("2006-01-02", req.PurchaseDate)
 	if err != nil {
 		return nil, badRequest("Invalid purchase date")
 	}
-
-	purchase := models.Purchase{
-		InvoiceNumber: req.InvoiceNumber,
-		SupplierID:    req.SupplierID,
-		PurchaseDate:  pdate,
-		CreatedAt:     now(),
+	invoice, err := s.resolveInvoiceNumber(req.InvoiceNumber, 0)
+	if err != nil {
+		return nil, err
 	}
 
-	var total, gst, grand float64
-	for _, itemReq := range req.Items {
-		med, err := s.findMedicine(itemReq.MedicineID)
+	var purchase models.Purchase
+	err = s.DB.Transaction(func(tx *gorm.DB) error {
+		purchase = models.Purchase{
+			InvoiceNumber: invoice,
+			SupplierID:    req.SupplierID,
+			PurchaseDate:  pdate,
+			CreatedAt:     now(),
+		}
+		total, gst, grand, items, err := s.buildPurchaseItems(tx, req.Items)
 		if err != nil {
-			return nil, err
+			return err
+		}
+		purchase.Items = items
+		purchase.TotalAmount = total
+		purchase.GSTAmount = gst
+		purchase.GrandTotal = grand
+		if err := tx.Create(&purchase).Error; err != nil {
+			return err
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	id := purchase.ID
+	s.LogAudit("CREATE", "Purchase", &id, username, "Created purchase: "+purchase.InvoiceNumber, "")
+	s.recordPurchaseAccounting(&purchase)
+	return s.GetPurchase(purchase.ID)
+}
+
+func (s *Services) UpdatePurchase(id uint, req models.PurchaseRequest, username string) (*models.Purchase, error) {
+	existing, err := s.GetPurchase(id)
+	if err != nil {
+		return nil, err
+	}
+	pdate, err := time.Parse("2006-01-02", req.PurchaseDate)
+	if err != nil {
+		return nil, badRequest("Invalid purchase date")
+	}
+	invoice := strings.TrimSpace(req.InvoiceNumber)
+	if invoice == "" {
+		invoice = existing.InvoiceNumber
+	}
+	invoice, err = s.resolveInvoiceNumber(invoice, id)
+	if err != nil {
+		return nil, err
+	}
+
+	err = s.DB.Transaction(func(tx *gorm.DB) error {
+		if err := s.reversePurchaseStock(tx, existing.Items); err != nil {
+			return err
+		}
+		if err := tx.Where("purchase_id = ?", id).Delete(&models.PurchaseItem{}).Error; err != nil {
+			return err
+		}
+
+		total, gst, grand, items, err := s.buildPurchaseItems(tx, req.Items)
+		if err != nil {
+			return err
+		}
+		for i := range items {
+			items[i].PurchaseID = id
+		}
+		if err := tx.Create(&items).Error; err != nil {
+			return err
+		}
+
+		existing.Items = nil
+		existing.InvoiceNumber = invoice
+		existing.SupplierID = req.SupplierID
+		existing.PurchaseDate = pdate
+		existing.TotalAmount = total
+		existing.GSTAmount = gst
+		existing.GrandTotal = grand
+		existing.UpdatedAt = now()
+		return tx.Omit("Items").Save(existing).Error
+	})
+	if err != nil {
+		return nil, err
+	}
+	s.LogAudit("UPDATE", "Purchase", &id, username, "Updated purchase: "+invoice, "")
+	return s.GetPurchase(id)
+}
+
+func (s *Services) DeletePurchase(id uint, username string) error {
+	purchase, err := s.GetPurchase(id)
+	if err != nil {
+		return err
+	}
+	err = s.DB.Transaction(func(tx *gorm.DB) error {
+		if err := s.reversePurchaseStock(tx, purchase.Items); err != nil {
+			return err
+		}
+		if err := tx.Where("purchase_id = ?", id).Delete(&models.PurchaseItem{}).Error; err != nil {
+			return err
+		}
+		return tx.Delete(&models.Purchase{}, id).Error
+	})
+	if err != nil {
+		return err
+	}
+	s.LogAudit("DELETE", "Purchase", &id, username, "Deleted purchase: "+purchase.InvoiceNumber, "")
+	return nil
+}
+
+func (s *Services) resolveInvoiceNumber(invoice string, excludeID uint) (string, error) {
+	invoice = strings.TrimSpace(invoice)
+	if invoice == "" {
+		invoice = util.GenerateInvoiceNumber()
+	}
+	var count int64
+	q := s.DB.Model(&models.Purchase{}).Where("invoice_number = ?", invoice)
+	if excludeID > 0 {
+		q = q.Where("id <> ?", excludeID)
+	}
+	q.Count(&count)
+	if count > 0 {
+		return "", badRequest("Invoice number already exists")
+	}
+	return invoice, nil
+}
+
+func (s *Services) buildPurchaseItems(tx *gorm.DB, itemReqs []models.PurchaseItemRequest) (float64, float64, float64, []models.PurchaseItem, error) {
+	var total, gst, grand float64
+	items := make([]models.PurchaseItem, 0, len(itemReqs))
+
+	for _, itemReq := range itemReqs {
+		var med models.Medicine
+		if err := tx.First(&med, itemReq.MedicineID).Error; err != nil {
+			return 0, 0, 0, nil, notFound("Medicine not found")
 		}
 		lineGST := itemReq.GSTAmount
 		subtotal := float64(itemReq.Quantity)*itemReq.PurchasePrice + lineGST
 		exp, _ := util.ParseDate(derefStr(itemReq.ExpiryDate))
-		purchase.Items = append(purchase.Items, models.PurchaseItem{
+
+		items = append(items, models.PurchaseItem{
 			MedicineID: itemReq.MedicineID, Quantity: itemReq.Quantity,
 			PurchasePrice: itemReq.PurchasePrice, GSTAmount: lineGST, Subtotal: subtotal,
 			ExpiryDate: exp, BatchNumber: itemReq.BatchNumber,
@@ -46,8 +178,8 @@ func (s *Services) CreatePurchase(req models.PurchaseRequest, username string) (
 		gst += lineGST
 		grand += subtotal
 
-		if err := s.AdjustStock(med.ID, itemReq.Quantity); err != nil {
-			return nil, err
+		if err := s.adjustStockDB(tx, med.ID, itemReq.Quantity); err != nil {
+			return 0, 0, 0, nil, err
 		}
 		med.PurchasePrice = itemReq.PurchasePrice
 		if exp != nil {
@@ -56,21 +188,33 @@ func (s *Services) CreatePurchase(req models.PurchaseRequest, username string) (
 		if itemReq.BatchNumber != "" {
 			med.BatchNumber = itemReq.BatchNumber
 		}
-		s.DB.Save(med)
+		if err := tx.Save(&med).Error; err != nil {
+			return 0, 0, 0, nil, err
+		}
 	}
+	return total, gst, grand, items, nil
+}
 
-	purchase.TotalAmount = total
-	purchase.GSTAmount = gst
-	purchase.GrandTotal = grand
-
-	if err := s.DB.Create(&purchase).Error; err != nil {
-		return nil, err
+func (s *Services) reversePurchaseStock(tx *gorm.DB, items []models.PurchaseItem) error {
+	for _, item := range items {
+		if err := s.adjustStockDB(tx, item.MedicineID, -item.Quantity); err != nil {
+			return err
+		}
 	}
-	id := purchase.ID
-	s.LogAudit("CREATE", "Purchase", &id, username, "Created purchase: "+purchase.InvoiceNumber, "")
-	s.recordPurchaseAccounting(&purchase)
-	s.DB.Preload("Supplier").Preload("Items.Medicine").First(&purchase, purchase.ID)
-	return &purchase, nil
+	return nil
+}
+
+func (s *Services) adjustStockDB(db *gorm.DB, medicineID uint, change int) error {
+	var med models.Medicine
+	if err := db.First(&med, medicineID).Error; err != nil {
+		return notFound("Medicine not found")
+	}
+	newStock := med.CurrentStock + change
+	if newStock < 0 {
+		return badRequest("Insufficient stock for medicine: " + med.MedicineName)
+	}
+	med.CurrentStock = newStock
+	return db.Save(&med).Error
 }
 
 func (s *Services) GetSales() ([]models.Sale, error) {

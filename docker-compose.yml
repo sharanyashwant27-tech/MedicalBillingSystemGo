@@ -1,7 +1,7 @@
 services:
   app:
     build: .
-    image: medical-billing-system-go:1.0.0
+    image: medical-billing-system-go:1.1.0
     container_name: medical-billing-go
     ports:
       - "8086:8086"

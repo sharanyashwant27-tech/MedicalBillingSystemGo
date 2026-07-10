@@ -12,6 +12,7 @@ var counters struct {
 	returnN  uint64
 	order    uint64
 	entry    uint64
+	purchase uint64
 }
 
 func GenerateMedicineCode() string {
@@ -22,6 +23,11 @@ func GenerateMedicineCode() string {
 func GenerateBillNumber() string {
 	n := atomic.AddUint64(&counters.bill, 1)
 	return fmt.Sprintf("BILL-%s-%04d", time.Now().Format("20060102"), n)
+}
+
+func GenerateInvoiceNumber() string {
+	n := atomic.AddUint64(&counters.purchase, 1)
+	return fmt.Sprintf("PUR-%s-%04d", time.Now().Format("20060102"), n)
 }
 
 func GenerateReturnNumber() string {

@@ -1,8 +1,6 @@
-target/
 .git/
 .idea/
 .vscode/
-*.iml
 uploads/
 backups/
 data/
@@ -10,10 +8,7 @@ bin/
 node_modules/
 *.log
 .DS_Store
-documentation/
-database/
 cookies.txt
 .env
 *.md
 !README.md
-src/

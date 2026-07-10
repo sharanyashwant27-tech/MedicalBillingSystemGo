@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 	"time"
@@ -338,11 +339,33 @@ func (h *Handlers) SalePDF(c *gin.Context) {
 		h.handleError(c, err)
 		return
 	}
+	data, err := h.Services.ExportSalePDF(sale)
+	if err != nil {
+		h.handleError(c, err)
+		return
+	}
+	filename := fmt.Sprintf("invoice-%s.pdf", sale.BillNumber)
 	c.Header("Content-Type", "application/pdf")
-	c.String(http.StatusOK, "PDF for bill %s (total: %.2f)", sale.BillNumber, sale.GrandTotal)
+	c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=%q", filename))
+	c.Data(http.StatusOK, "application/pdf", data)
 }
 
 func (h *Handlers) ExportReport(c *gin.Context) {
-	c.Header("Content-Type", "text/csv")
-	c.String(http.StatusOK, "report,exported\n")
+	start, _ := time.Parse("2006-01-02", c.Query("startDate"))
+	end, _ := time.Parse("2006-01-02", c.Query("endDate"))
+	reportType := c.Query("type")
+	format := c.DefaultQuery("format", "csv")
+
+	data, contentType, err := h.Services.ExportReport(reportType, format, start, end)
+	if err != nil {
+		h.handleError(c, err)
+		return
+	}
+	ext := "csv"
+	if format == "xlsx" || format == "excel" {
+		ext = "xlsx"
+	}
+	filename := fmt.Sprintf("report-%s.%s", reportType, ext)
+	c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=%q", filename))
+	c.Data(http.StatusOK, contentType, data)
 }

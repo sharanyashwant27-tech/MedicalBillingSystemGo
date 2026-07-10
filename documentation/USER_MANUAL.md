@@ -2,7 +2,7 @@
 
 ## Getting Started
 
-1. Open http://localhost:8080 in your browser
+1. Open http://localhost:8086 in your browser
 2. Login with your credentials
 3. You will be redirected to the Dashboard
 

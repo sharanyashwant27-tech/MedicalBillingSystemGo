@@ -114,7 +114,10 @@ func main() {
 		api.DELETE("/medicines/:id", h.DeleteMedicine)
 
 		api.GET("/purchases", h.GetPurchases)
+		api.GET("/purchases/:id", h.GetPurchase)
 		api.POST("/purchases", h.CreatePurchase)
+		api.PUT("/purchases/:id", h.UpdatePurchase)
+		api.DELETE("/purchases/:id", h.DeletePurchase)
 
 		api.GET("/sales", h.GetSales)
 		api.GET("/sales/recent", h.GetRecentSales)

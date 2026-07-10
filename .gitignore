@@ -1,14 +1,13 @@
-target/
-!.mvn/wrapper/maven-wrapper.jar
 uploads/
 backups/
 data/
 bin/
 *.exe
 .idea/
-*.iml
 .vscode/
-*.class
+*.iml
+node_modules/
 *.log
 .DS_Store
 .env
+cookies.txt

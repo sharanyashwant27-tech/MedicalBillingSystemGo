@@ -350,16 +350,7 @@ func (s *Services) DeleteMedicine(id uint, username string) error {
 }
 
 func (s *Services) AdjustStock(medicineID uint, change int) error {
-	item, err := s.findMedicine(medicineID)
-	if err != nil {
-		return err
-	}
-	newStock := item.CurrentStock + change
-	if newStock < 0 {
-		return badRequest("Insufficient stock for medicine: " + item.MedicineName)
-	}
-	item.CurrentStock = newStock
-	return s.DB.Save(item).Error
+	return s.adjustStockDB(s.DB, medicineID, change)
 }
 
 func (s *Services) findMedicine(id uint) (*models.Medicine, error) {

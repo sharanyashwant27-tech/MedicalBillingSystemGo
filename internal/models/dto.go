@@ -138,7 +138,7 @@ type PurchaseItemRequest struct {
 }
 
 type PurchaseRequest struct {
-	InvoiceNumber string                `json:"invoiceNumber" binding:"required"`
+	InvoiceNumber string                `json:"invoiceNumber"`
 	SupplierID    uint                  `json:"supplierId" binding:"required"`
 	PurchaseDate  string                `json:"purchaseDate" binding:"required"`
 	Items         []PurchaseItemRequest `json:"items" binding:"required,min=1"`

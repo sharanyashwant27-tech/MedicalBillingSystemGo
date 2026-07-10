@@ -338,6 +338,16 @@ func (h *Handlers) GetPurchases(c *gin.Context) {
 	c.JSON(http.StatusOK, items)
 }
 
+func (h *Handlers) GetPurchase(c *gin.Context) {
+	id, _ := strconv.ParseUint(c.Param("id"), 10, 64)
+	item, err := h.Services.GetPurchase(uint(id))
+	if err != nil {
+		h.handleError(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, item)
+}
+
 func (h *Handlers) CreatePurchase(c *gin.Context) {
 	var req models.PurchaseRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -350,6 +360,30 @@ func (h *Handlers) CreatePurchase(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, item)
+}
+
+func (h *Handlers) UpdatePurchase(c *gin.Context) {
+	id, _ := strconv.ParseUint(c.Param("id"), 10, 64)
+	var req models.PurchaseRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "Invalid request"})
+		return
+	}
+	item, err := h.Services.UpdatePurchase(uint(id), req, h.username(c))
+	if err != nil {
+		h.handleError(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, item)
+}
+
+func (h *Handlers) DeletePurchase(c *gin.Context) {
+	id, _ := strconv.ParseUint(c.Param("id"), 10, 64)
+	if err := h.Services.DeletePurchase(uint(id), h.username(c)); err != nil {
+		h.handleError(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "Purchase deleted"})
 }
 
 func (h *Handlers) GetSales(c *gin.Context) {
