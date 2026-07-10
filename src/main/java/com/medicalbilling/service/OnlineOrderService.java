@@ -40,6 +40,13 @@ public class OnlineOrderService {
                 .orElseThrow(() -> new ResourceNotFoundException("Order not found: " + orderId));
     }
 
+    @Transactional(readOnly = true)
+    public OnlineOrder getByIdWithDetails(Long id) {
+        Long orderId = Objects.requireNonNull(id);
+        return onlineOrderRepository.findByIdWithDetails(orderId)
+                .orElseThrow(() -> new ResourceNotFoundException("Order not found: " + orderId));
+    }
+
     @Transactional
     public OnlineOrder create(Map<String, Object> request, String username) {
         Long customerId = Long.valueOf(request.get("customerId").toString());
@@ -60,6 +67,10 @@ public class OnlineOrderService {
 
         @SuppressWarnings("unchecked")
         List<Map<String, Object>> items = (List<Map<String, Object>>) request.get("items");
+        if (items == null || items.isEmpty()) {
+            throw new IllegalArgumentException("At least one order item is required");
+        }
+
         BigDecimal total = BigDecimal.ZERO;
 
         for (Map<String, Object> itemReq : items) {
@@ -87,6 +98,74 @@ public class OnlineOrderService {
                     "Your order " + saved.getOrderNumber() + " has been placed. Total: Rs." + saved.getTotalAmount());
         }
         return saved;
+    }
+
+    @Transactional
+    public OnlineOrder update(Long id, Map<String, Object> request, String username) {
+        OnlineOrder order = getByIdWithDetails(id);
+
+        if (request.get("customerId") != null) {
+            Long customerId = Long.valueOf(request.get("customerId").toString());
+            order.setCustomer(customerService.findCustomer(customerId));
+        }
+
+        if (request.containsKey("branchId")) {
+            if (request.get("branchId") == null || request.get("branchId").toString().isBlank()) {
+                order.setBranch(null);
+            } else {
+                order.setBranch(branchService.getById(Long.valueOf(request.get("branchId").toString())));
+            }
+        }
+
+        if (request.get("deliveryAddress") != null) {
+            order.setDeliveryAddress((String) request.get("deliveryAddress"));
+        }
+        if (request.get("contactPhone") != null) {
+            order.setContactPhone((String) request.get("contactPhone"));
+        }
+        if (request.get("notes") != null) {
+            order.setNotes((String) request.get("notes"));
+        }
+        if (request.get("status") != null) {
+            order.setStatus(OrderStatus.valueOf(request.get("status").toString()));
+        }
+
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> items = (List<Map<String, Object>>) request.get("items");
+        if (items == null || items.isEmpty()) {
+            throw new IllegalArgumentException("At least one order item is required");
+        }
+
+        order.getItems().clear();
+        BigDecimal total = BigDecimal.ZERO;
+
+        for (Map<String, Object> itemReq : items) {
+            Long medicineId = Long.valueOf(itemReq.get("medicineId").toString());
+            int quantity = Integer.parseInt(itemReq.get("quantity").toString());
+            Medicine medicine = medicineService.findMedicine(medicineId);
+            BigDecimal subtotal = medicine.getSellingPrice().multiply(BigDecimal.valueOf(quantity));
+
+            OnlineOrderItem item = OnlineOrderItem.builder()
+                    .medicine(medicine)
+                    .quantity(quantity)
+                    .unitPrice(medicine.getSellingPrice())
+                    .subtotal(subtotal)
+                    .build();
+            order.addItem(item);
+            total = total.add(subtotal);
+        }
+
+        order.setTotalAmount(total);
+        OnlineOrder saved = onlineOrderRepository.save(order);
+        auditService.log("UPDATE", "OnlineOrder", saved.getId(), username, "Updated order: " + saved.getOrderNumber());
+        return saved;
+    }
+
+    @Transactional
+    public void delete(Long id, String username) {
+        OnlineOrder order = getById(id);
+        onlineOrderRepository.delete(Objects.requireNonNull(order));
+        auditService.log("DELETE", "OnlineOrder", id, username, "Deleted order: " + order.getOrderNumber());
     }
 
     @Transactional

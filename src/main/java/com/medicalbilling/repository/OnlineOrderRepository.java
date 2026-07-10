@@ -17,6 +17,9 @@ public interface OnlineOrderRepository extends JpaRepository<OnlineOrder, Long> 
     @Query("SELECT DISTINCT o FROM OnlineOrder o LEFT JOIN FETCH o.customer LEFT JOIN FETCH o.items i LEFT JOIN FETCH i.medicine ORDER BY o.orderDate DESC")
     List<OnlineOrder> findAllWithDetails();
 
-    @Query("SELECT DISTINCT o FROM OnlineOrder o LEFT JOIN FETCH o.customer LEFT JOIN FETCH o.items i LEFT JOIN FETCH i.medicine WHERE o.status = :status ORDER BY o.orderDate DESC")
+    @Query("SELECT DISTINCT o FROM OnlineOrder o LEFT JOIN FETCH o.customer LEFT JOIN FETCH o.branch LEFT JOIN FETCH o.items i LEFT JOIN FETCH i.medicine WHERE o.status = :status ORDER BY o.orderDate DESC")
     List<OnlineOrder> findByStatusWithDetails(@Param("status") OrderStatus status);
+
+    @Query("SELECT DISTINCT o FROM OnlineOrder o LEFT JOIN FETCH o.customer LEFT JOIN FETCH o.branch LEFT JOIN FETCH o.items i LEFT JOIN FETCH i.medicine WHERE o.id = :id")
+    Optional<OnlineOrder> findByIdWithDetails(@Param("id") Long id);
 }

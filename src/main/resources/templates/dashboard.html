@@ -30,13 +30,15 @@
                     </div>
                 </div>
                 <div class="col-md-3 col-sm-6">
-                    <div class="stat-card card-medicines animate-slide-up" style="animation-delay: 0.2s">
-                        <div class="stat-icon"><i class="bi bi-capsule"></i></div>
-                        <div class="stat-info">
-                            <h6>Available Medicines</h6>
-                            <h3 th:text="${dashboard.availableMedicines}">0</h3>
+                    <a th:href="@{/medicines}" href="/medicines" class="stat-card-link animate-slide-up" style="animation-delay: 0.2s" title="Manage medicines — add, edit, and delete" aria-label="Open medicines page">
+                        <div class="stat-card card-medicines">
+                            <div class="stat-icon"><i class="bi bi-capsule"></i></div>
+                            <div class="stat-info">
+                                <h6>Available Medicines</h6>
+                                <h3 th:text="${dashboard.availableMedicines}">0</h3>
+                            </div>
                         </div>
-                    </div>
+                    </a>
                 </div>
                 <div class="col-md-3 col-sm-6">
                     <div class="stat-card card-alert animate-slide-up" style="animation-delay: 0.3s">

@@ -87,10 +87,29 @@ public class FeatureApiController {
         return ResponseEntity.ok(onlineOrderService.getByStatus(status));
     }
 
+    @GetMapping("/online-orders/{id}")
+    public ResponseEntity<OnlineOrder> getOnlineOrder(@PathVariable Long id) {
+        return ResponseEntity.ok(onlineOrderService.getByIdWithDetails(id));
+    }
+
     @PostMapping("/online-orders")
     public ResponseEntity<OnlineOrder> createOnlineOrder(@RequestBody Map<String, Object> request,
                                                           @AuthenticationPrincipal UserDetails user) {
         return ResponseEntity.ok(onlineOrderService.create(request, user.getUsername()));
+    }
+
+    @PutMapping("/online-orders/{id}")
+    public ResponseEntity<OnlineOrder> updateOnlineOrder(@PathVariable Long id,
+                                                         @RequestBody Map<String, Object> request,
+                                                         @AuthenticationPrincipal UserDetails user) {
+        return ResponseEntity.ok(onlineOrderService.update(id, request, user.getUsername()));
+    }
+
+    @DeleteMapping("/online-orders/{id}")
+    public ResponseEntity<Map<String, String>> deleteOnlineOrder(@PathVariable Long id,
+                                                                 @AuthenticationPrincipal UserDetails user) {
+        onlineOrderService.delete(id, user.getUsername());
+        return ResponseEntity.ok(Map.of("message", "Order deleted successfully"));
     }
 
     @PutMapping("/online-orders/{id}/status")

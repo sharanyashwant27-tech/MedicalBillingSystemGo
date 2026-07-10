@@ -527,16 +527,23 @@ body {
     text-decoration: none;
     cursor: pointer;
     position: relative;
-    z-index: 5;
+    z-index: 10;
+    pointer-events: auto;
 }
 
 .row.g-4 > [class*="col-"] {
     display: flex;
     flex-direction: column;
+    position: relative;
 }
 
 .row.g-4 > [class*="col-"] > .stat-card-link {
     flex: 1 1 auto;
+}
+
+.stat-card-link.animate-slide-up {
+    animation: slideUp 0.5s ease forwards;
+    opacity: 0;
 }
 
 .stat-card-link:hover {
@@ -553,7 +560,8 @@ body {
 .stat-card-link .stat-icon,
 .stat-card-link .stat-info,
 .stat-card-link .stat-info h6,
-.stat-card-link .stat-info h3 {
+.stat-card-link .stat-info h3,
+.stat-card-link .stat-icon i {
     pointer-events: none;
 }
 

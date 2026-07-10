@@ -116,6 +116,23 @@ class WebControllerPageTest {
 
     @Test
     @WithMockUser(username = "admin", roles = "ADMIN")
+    void dashboardAvailableMedicinesLinkRenders() throws Exception {
+        mockMvc.perform(get("/dashboard"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Available Medicines")))
+                .andExpect(content().string(containsString("/medicines")));
+    }
+
+    @Test
+    @WithMockUser(username = "admin", roles = "ADMIN")
+    void medicinesPageRenders() throws Exception {
+        mockMvc.perform(get("/medicines"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Medicine Master")));
+    }
+
+    @Test
+    @WithMockUser(username = "admin", roles = "ADMIN")
     void suppliersPageRenders() throws Exception {
         mockMvc.perform(get("/suppliers"))
                 .andExpect(status().isOk())
@@ -127,5 +144,18 @@ class WebControllerPageTest {
     void categoriesPageRenders() throws Exception {
         mockMvc.perform(get("/categories"))
                 .andExpect(status().isOk());
+    }
+
+    @Test
+    @WithMockUser(username = "admin", roles = "ADMIN")
+    void onlineOrdersPageRenders() throws Exception {
+        mockMvc.perform(get("/online-orders"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Online Orders")))
+                .andExpect(content().string(containsString("orderModal")))
+                .andExpect(content().string(containsString("viewOrderModal")))
+                .andExpect(content().string(containsString("Medicine Name")))
+                .andExpect(content().string(containsString("openOrderModal()")))
+                .andExpect(content().string(containsString("New Order")));
     }
 }
