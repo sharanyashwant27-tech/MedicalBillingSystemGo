@@ -1,68 +1,30 @@
 services:
-  # Requires a .env file (copy from .env.example). Docker Compose loads it automatically.
-  mysql:
-    image: mysql:8.0
-    container_name: medical-billing-mysql
-    restart: unless-stopped
-    environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
-      MYSQL_DATABASE: medical_billing_db
-    volumes:
-      - mysql_data:/var/lib/mysql
-    healthcheck:
-      test: ["CMD-SHELL", "mysqladmin ping -h localhost -uroot -p\"$$MYSQL_ROOT_PASSWORD\" || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-      start_period: 30s
-    networks:
-      - medical-billing-net
-
   app:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      args:
-        APP_VERSION: "1.0.5"
-    image: medical-billing-system:1.0.5
-    container_name: medical-billing-app
-    restart: unless-stopped
-    depends_on:
-      mysql:
-        condition: service_healthy
+    build: .
+    image: medical-billing-system-go:1.0.0
+    container_name: medical-billing-go
     ports:
-      - "8085:8080"
+      - "8086:8086"
     environment:
-      SPRING_PROFILES_ACTIVE: docker
-      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/medical_billing_db?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
-      SPRING_DATASOURCE_USERNAME: ${SPRING_DATASOURCE_USERNAME:-root}
-      SPRING_DATASOURCE_PASSWORD: ${MYSQL_ROOT_PASSWORD}
-      APP_JWT_SECRET: ${APP_JWT_SECRET}
-      APP_ADMIN_PASSWORD: ${APP_ADMIN_PASSWORD}
-      APP_PHARMACIST_PASSWORD: ${APP_PHARMACIST_PASSWORD}
-      APP_CASHIER_PASSWORD: ${APP_CASHIER_PASSWORD}
-      APP_SMS_API_KEY: ${APP_SMS_API_KEY:-}
-      APP_WHATSAPP_API_TOKEN: ${APP_WHATSAPP_API_TOKEN:-}
-      APP_LOW_STOCK_NOTIFY_ENABLED: ${APP_LOW_STOCK_NOTIFY_ENABLED:-true}
-      APP_LOW_STOCK_THRESHOLD: ${APP_LOW_STOCK_THRESHOLD:-10}
-      APP_NEAR_EXPIRY_DAYS: ${APP_NEAR_EXPIRY_DAYS:-30}
+      PORT: "8086"
+      APP_JWT_SECRET: ${APP_JWT_SECRET:-dev-jwt-secret-change-in-production-32chars}
+      APP_ADMIN_PASSWORD: ${APP_ADMIN_PASSWORD:-admin123}
+      APP_PHARMACIST_PASSWORD: ${APP_PHARMACIST_PASSWORD:-pharma123}
+      APP_CASHIER_PASSWORD: ${APP_CASHIER_PASSWORD:-cashier123}
+      DB_DRIVER: sqlite
+      DB_DSN: data/medical_billing.db
     volumes:
+      - app_data:/app/data
       - app_uploads:/app/uploads
       - app_backups:/app/backups
     healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8080/login"]
+      test: ["CMD", "wget", "-qO-", "http://localhost:8086/login"]
       interval: 30s
       timeout: 5s
       retries: 3
-      start_period: 60s
-    networks:
-      - medical-billing-net
+      start_period: 20s
 
 volumes:
-  mysql_data:
+  app_data:
   app_uploads:
   app_backups:
-
-networks:
-  medical-billing-net:
-    driver: bridge

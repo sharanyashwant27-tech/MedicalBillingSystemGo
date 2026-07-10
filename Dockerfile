@@ -1,46 +1,24 @@
-# Stage 1: Build
-FROM eclipse-temurin:21-jdk-alpine AS build
+# Build stage
+FROM golang:1.26-alpine AS builder
 WORKDIR /app
+RUN apk add --no-cache git
+COPY go.mod go.sum ./
+RUN go mod download
+COPY . .
+RUN CGO_ENABLED=0 go build -o medibill ./cmd/server/
 
-ARG APP_VERSION=1.0.5
-
-RUN apk add --no-cache maven
-
-# Cache Maven dependencies separately from source changes
-COPY pom.xml .
-RUN mvn dependency:go-offline -B -q
-
-COPY src ./src
-RUN mvn clean package -DskipTests -B -q
-
-# Stage 2: Run
-FROM eclipse-temurin:21-jre-alpine
+# Runtime stage
+FROM alpine:3.20
 WORKDIR /app
-
-ARG APP_VERSION=1.0.5
-
-LABEL org.opencontainers.image.title="MediBill - Medical Billing System" \
-      org.opencontainers.image.description="Spring Boot pharmacy billing with JWT security, inventory alerts, low-stock medicines page, uniform UI typography, dashboard master links, online order CRUD, navbar notifications, SMS/email, and dashboard" \
-      org.opencontainers.image.version="${APP_VERSION}" \
-      org.opencontainers.image.source="https://github.com/sharanyashwant27-tech/MedicalBillingSystem"
-
-ENV JAVA_TOOL_OPTIONS="-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0" \
-    SPRING_PROFILES_ACTIVE=docker
-
-# Secrets (APP_JWT_SECRET, MYSQL_ROOT_PASSWORD, etc.) are injected at runtime via docker-compose / .env — never baked into the image
-
-RUN addgroup -S medical && adduser -S medical -G medical && \
-    mkdir -p /app/uploads /app/backups && \
-    apk add --no-cache mysql-client wget && \
-    chown -R medical:medical /app
-
-COPY --from=build /app/target/medical-billing-system-*.jar app.jar
-
-USER medical
-
-EXPOSE 8080
-
-HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 \
-  CMD wget -q --spider http://localhost:8080/login || exit 1
-
-ENTRYPOINT ["java", "-jar", "app.jar"]
+RUN apk add --no-cache ca-certificates tzdata
+COPY --from=builder /app/medibill .
+COPY web/static ./web/static
+COPY web/templates ./web/templates
+RUN mkdir -p data uploads backups
+ENV PORT=8086
+ENV DB_DRIVER=sqlite
+ENV DB_DSN=data/medical_billing.db
+EXPOSE 8086
+HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
+  CMD wget -qO- http://localhost:8086/login || exit 1
+CMD ["./medibill"]

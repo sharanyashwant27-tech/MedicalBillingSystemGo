@@ -1,0 +1,81 @@
+{{define "sidebar"}}
+<nav class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+        <a href="/dashboard" class="sidebar-brand" title="Go to Dashboard">
+            <img src="/images/medibill-logo.svg" alt="MediBill logo" class="brand-logo" width="40" height="40">
+            <span class="brand-name">MediBill</span>
+        </a>
+    </div>
+    <ul class="sidebar-nav">
+        <li><a href="/dashboard" class="{{activeClass .ActivePage "dashboard"}}"><i class="bi bi-speedometer2"></i> Dashboard</a></li>
+        <li><a href="/billing" class="{{activeClass .ActivePage "billing"}}"><i class="bi bi-receipt"></i> Billing</a></li>
+        <li><a href="/medicines" class="{{activeClass .ActivePage "medicines"}}"><i class="bi bi-capsule"></i> Medicines</a></li>
+        <li><a href="/categories" class="{{activeClass .ActivePage "categories"}}"><i class="bi bi-tags"></i> Categories</a></li>
+        <li><a href="/suppliers" class="{{activeClass .ActivePage "suppliers"}}"><i class="bi bi-truck"></i> Suppliers</a></li>
+        <li><a href="/customers" class="{{activeClass .ActivePage "customers"}}"><i class="bi bi-people"></i> Customers</a></li>
+        <li><a href="/purchases" class="{{activeClass .ActivePage "purchases"}}"><i class="bi bi-bag-plus"></i> Purchases</a></li>
+        <li><a href="/inventory" class="{{activeClass .ActivePage "inventory"}}"><i class="bi bi-boxes"></i> Inventory</a></li>
+        <li><a href="/returns" class="{{activeClass .ActivePage "returns"}}"><i class="bi bi-arrow-return-left"></i> Returns</a></li>
+        <li><a href="/prescriptions" class="{{activeClass .ActivePage "prescriptions"}}"><i class="bi bi-file-medical"></i> Prescriptions</a></li>
+        <li><a href="/reports" class="{{activeClass .ActivePage "reports"}}"><i class="bi bi-graph-up"></i> Reports</a></li>
+        <li><a href="/online-orders" class="{{activeClass .ActivePage "online-orders"}}"><i class="bi bi-cart-check"></i> Online Orders</a></li>
+        <li><a href="/reorder-suggestions" class="{{activeClass .ActivePage "reorder"}}"><i class="bi bi-robot"></i> AI Reorder</a></li>
+        <li><a href="/branches" class="{{activeClass .ActivePage "branches"}}"><i class="bi bi-building"></i> Branches</a></li>
+        <li><a href="/audit-logs" class="{{activeClass .ActivePage "audit"}}"><i class="bi bi-shield-check"></i> Audit Logs</a></li>
+        {{if .IsAdmin}}<li><a href="/users" class="{{activeClass .ActivePage "users"}}"><i class="bi bi-person-gear"></i> Users</a></li>{{end}}
+        <li><a href="/settings" class="{{activeClass .ActivePage "settings"}}"><i class="bi bi-gear"></i> Settings</a></li>
+        <li class="sidebar-logout">
+            <form action="/logout" method="post">
+                <button type="submit" class="sidebar-logout-btn"><i class="bi bi-box-arrow-right"></i> Logout</button>
+            </form>
+        </li>
+    </ul>
+</nav>
+{{end}}
+
+{{define "navbar"}}
+<header class="top-navbar">
+    <button class="btn btn-link sidebar-toggle" id="sidebarToggle"><i class="bi bi-list"></i></button>
+    <h5 class="page-title mb-0">{{.PageTitle}}</h5>
+    <div class="navbar-actions">
+        <div class="notification-wrap" id="notificationWrap">
+            <button type="button" class="notification-bell-btn" id="notificationBell" title="Inventory alerts" aria-label="Notifications">
+                <i class="bi bi-bell" id="notificationBellIcon"></i>
+                <span class="notification-badge" id="alertCount">0</span>
+            </button>
+            <div class="notification-panel" id="notificationPanel">
+                <div class="notification-panel-header">
+                    <div>
+                        <strong id="notificationPanelTitle">Inventory Alerts</strong>
+                        <div class="small text-muted notification-panel-subtitle" id="notificationPanelSubtitle">Low stock and near expiry</div>
+                    </div>
+                    <a href="/inventory" class="small">Inventory</a>
+                </div>
+                <div class="notification-panel-body" id="notificationList">
+                    <p class="text-muted small mb-0">Loading alerts...</p>
+                </div>
+            </div>
+            <span class="notification-message" id="notificationMessage" aria-live="polite"></span>
+        </div>
+        <button class="btn btn-sm btn-outline-secondary" id="darkModeToggle" title="Toggle Dark Mode"><i class="bi bi-moon"></i></button>
+        <div class="dropdown">
+            <button class="btn btn-sm btn-success dropdown-toggle" data-bs-toggle="dropdown">
+                <i class="bi bi-person-circle"></i> {{.Username}}
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end">
+                <li><a class="dropdown-item" href="/settings"><i class="bi bi-gear"></i> Settings</a></li>
+                <li><hr class="dropdown-divider"></li>
+                <li>
+                    <form action="/logout" method="post">
+                        <button type="submit" class="dropdown-item text-danger"><i class="bi bi-box-arrow-right"></i> Logout</button>
+                    </form>
+                </li>
+            </ul>
+        </div>
+    </div>
+</header>
+{{end}}
+
+{{define "footer"}}
+<footer class="app-footer"><p>&copy; 2024 Medical Billing System. All rights reserved.</p></footer>
+{{end}}

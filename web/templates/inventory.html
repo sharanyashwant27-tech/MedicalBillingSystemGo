@@ -1,0 +1,90 @@
+{{define "inventory.html"}}
+<!DOCTYPE html>
+<html>
+<head>{{template "head" (dict "Title" "Inventory")}}</head>
+<body>
+<div class="app-wrapper">
+{{template "sidebar" .}}
+<div class="main-content">
+{{template "navbar" .}}
+<div class="content-area">
+<div class="inventory-stats-grid mb-4">
+<div class="inventory-stat-item">
+<div class="stat-card inventory-stat-card">
+<div class="inventory-stat-label-wrap"><h6 class="inventory-stat-label">Total</h6></div>
+<div class="inventory-stat-amount-wrap"><p class="inventory-stat-value">{{.Inventory.TotalMedicines}}</p></div>
+</div></div>
+<div class="inventory-stat-item">
+<a href="/low-stock-medicines" class="stat-card-link" title="View low stock medicines">
+<div class="stat-card card-alert inventory-stat-card">
+<div class="inventory-stat-label-wrap"><h6 class="inventory-stat-label" title="Medicines with fewer than 10 units">Low Stock</h6></div>
+<div class="inventory-stat-amount-wrap"><p class="inventory-stat-value">{{.Inventory.LowStock}}</p></div>
+</div></a></div>
+<div class="inventory-stat-item">
+<div class="stat-card card-expired inventory-stat-card">
+<div class="inventory-stat-label-wrap"><h6 class="inventory-stat-label">Out of Stock</h6></div>
+<div class="inventory-stat-amount-wrap"><p class="inventory-stat-value">{{.Inventory.OutOfStock}}</p></div>
+</div></div>
+<div class="inventory-stat-item">
+<a href="/near-expiry-medicines" class="stat-card-link" title="View medicines expiring within 30 days">
+<div class="stat-card card-alert inventory-stat-card">
+<div class="inventory-stat-label-wrap"><h6 class="inventory-stat-label">Near Expiry</h6></div>
+<div class="inventory-stat-amount-wrap"><p class="inventory-stat-value">{{.Inventory.NearExpiry}}</p></div>
+</div></a></div>
+<div class="inventory-stat-item">
+<a href="/expired-medicines" class="stat-card-link" title="View expired medicines">
+<div class="stat-card card-expired inventory-stat-card">
+<div class="inventory-stat-label-wrap"><h6 class="inventory-stat-label">Expired</h6></div>
+<div class="inventory-stat-amount-wrap"><p class="inventory-stat-value">{{.Inventory.Expired}}</p></div>
+</div></a></div>
+<div class="inventory-stat-item">
+<div class="stat-card card-profit inventory-stat-card">
+<div class="inventory-stat-label-wrap"><h6 class="inventory-stat-label">Valuation</h6></div>
+<div class="inventory-stat-amount-wrap"><p class="inventory-stat-value inventory-stat-currency">{{formatCurrency .Inventory.Valuation}}</p></div>
+</div></div>
+</div>
+<div class="btn-group flex-wrap mb-4 inventory-filter-tabs">
+<a href="/inventory" class="{{if or (eq .Filter "") (eq .Filter "ALL")}}btn btn-success{{else}}btn btn-outline-success{{end}}">All</a>
+<a href="/low-stock-medicines" class="{{if eq .Filter "LOW_STOCK"}}btn btn-warning{{else}}btn btn-outline-warning{{end}}">Low Stock</a>
+<a href="/inventory?filter=OUT_OF_STOCK" class="{{if eq .Filter "OUT_OF_STOCK"}}btn btn-danger{{else}}btn btn-outline-danger{{end}}">Out of Stock</a>
+<a href="/near-expiry-medicines" class="{{if eq .Filter "NEAR_EXPIRY"}}btn btn-info{{else}}btn btn-outline-info{{end}}">Near Expiry (30d)</a>
+<a href="/expired-medicines" class="{{if eq .Filter "EXPIRED"}}btn btn-dark{{else}}btn btn-outline-dark{{end}}">Expired</a>
+</div>
+<div class="card">
+{{if eq .Filter "LOW_STOCK"}}<div class="card-header"><h5 class="mb-0"><i class="bi bi-exclamation-triangle text-warning"></i> Low Stock Medicines (&lt; 10 units)</h5></div>{{end}}
+{{if eq .Filter "NEAR_EXPIRY"}}<div class="card-header"><h5 class="mb-0"><i class="bi bi-calendar-event text-info"></i> Near Expiry Medicines (within 30 days)</h5></div>{{end}}
+{{if eq .Filter "EXPIRED"}}<div class="card-header"><h5 class="mb-0"><i class="bi bi-calendar-x text-danger"></i> Expired Medicines List</h5></div>{{end}}
+<div class="card-body table-responsive">
+<table class="table table-hover">
+<thead><tr><th>Code</th><th>Name</th><th>Batch</th><th>Expiry</th><th>Stock</th><th>Min Stock</th><th>Value</th></tr></thead>
+<tbody>
+{{range .Inventory.Items}}
+<tr{{if eq $.Filter "EXPIRED"}} class="table-danger"{{else if eq $.Filter "NEAR_EXPIRY"}} class="table-info"{{end}}>
+<td>{{.MedicineCode}}</td>
+<td>
+<span>{{.MedicineName}}</span>
+{{if eq $.Filter "LOW_STOCK"}}<span class="badge bg-warning text-dark ms-1">Low stock</span>{{end}}
+{{if eq $.Filter "NEAR_EXPIRY"}}<span class="badge bg-info text-dark ms-1">Expiring</span>{{end}}
+{{if eq $.Filter "EXPIRED"}}<span class="badge bg-danger ms-1">Expired</span>{{end}}
+</td>
+<td>{{.BatchNumber}}</td>
+<td{{if eq $.Filter "EXPIRED"}} class="text-danger fw-bold"{{else if eq $.Filter "NEAR_EXPIRY"}} class="text-info fw-bold"{{end}}>{{if .ExpiryDate}}{{.ExpiryDate.Format "2006-01-02"}}{{end}}</td>
+<td{{if eq .CurrentStock 0}} class="text-danger fw-bold"{{else if le .CurrentStock 9}} class="text-warning fw-bold"{{end}}>{{.CurrentStock}}</td>
+<td>{{.MinimumStock}}</td>
+<td>{{formatCurrency .PurchasePrice}} × {{.CurrentStock}}</td>
+</tr>{{end}}
+{{if not .Inventory.Items}}
+<tr><td colspan="7" class="text-center text-muted py-4">
+{{if eq .Filter "EXPIRED"}}No expired medicines found.
+{{else if eq .Filter "NEAR_EXPIRY"}}No medicines expiring within 30 days.
+{{else if eq .Filter "LOW_STOCK"}}No low stock medicines found.
+{{else}}No medicines found for this filter.{{end}}
+</td></tr>{{end}}
+</tbody></table></div></div>
+</div>
+{{template "footer" .}}
+</div></div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="/js/app.js"></script>
+</body></html>
+{{end}}
