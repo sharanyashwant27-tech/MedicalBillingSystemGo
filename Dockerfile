@@ -2,7 +2,7 @@
 FROM eclipse-temurin:21-jdk-alpine AS build
 WORKDIR /app
 
-ARG APP_VERSION=1.0.4
+ARG APP_VERSION=1.0.5
 
 RUN apk add --no-cache maven
 
@@ -17,10 +17,10 @@ RUN mvn clean package -DskipTests -B -q
 FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
 
-ARG APP_VERSION=1.0.4
+ARG APP_VERSION=1.0.5
 
 LABEL org.opencontainers.image.title="MediBill - Medical Billing System" \
-      org.opencontainers.image.description="Spring Boot pharmacy billing with JWT security, inventory alerts, dashboard master links, online order CRUD, navbar notifications, SMS/email, and dashboard" \
+      org.opencontainers.image.description="Spring Boot pharmacy billing with JWT security, inventory alerts, low-stock medicines page, uniform UI typography, dashboard master links, online order CRUD, navbar notifications, SMS/email, and dashboard" \
       org.opencontainers.image.version="${APP_VERSION}" \
       org.opencontainers.image.source="https://github.com/sharanyashwant27-tech/MedicalBillingSystem"
 

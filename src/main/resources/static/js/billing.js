@@ -146,7 +146,7 @@ function renderCart() {
         return `<tr>
             <td>${item.medicineName}</td>
             <td>${item.batchNumber || '-'}</td>
-            <td><input type="number" value="${item.quantity}" min="1" max="${item.maxStock}" style="width:60px" onchange="updateQty(${i}, this.value)"></td>
+            <td><input type="number" class="qty-input" value="${item.quantity}" min="1" max="${item.maxStock}" onchange="updateQty(${i}, this.value)"></td>
             <td>₹${item.unitPrice.toFixed(2)}</td>
             <td>${item.discountPercent}%</td>
             <td>₹${gst.toFixed(2)}</td>

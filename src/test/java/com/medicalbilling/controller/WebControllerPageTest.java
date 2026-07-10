@@ -125,6 +125,31 @@ class WebControllerPageTest {
 
     @Test
     @WithMockUser(username = "admin", roles = "ADMIN")
+    void dashboardLowStockLinkRenders() throws Exception {
+        mockMvc.perform(get("/dashboard"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Low Stock")))
+                .andExpect(content().string(containsString("/low-stock-medicines")));
+    }
+
+    @Test
+    @WithMockUser(username = "admin", roles = "ADMIN")
+    void lowStockMedicinesPageRenders() throws Exception {
+        mockMvc.perform(get("/low-stock-medicines"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Low Stock Medicines")));
+    }
+
+    @Test
+    @WithMockUser(username = "admin", roles = "ADMIN")
+    void inventoryLowStockFilterRenders() throws Exception {
+        mockMvc.perform(get("/inventory").param("filter", "LOW_STOCK"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Low Stock")));
+    }
+
+    @Test
+    @WithMockUser(username = "admin", roles = "ADMIN")
     void medicinesPageRenders() throws Exception {
         mockMvc.perform(get("/medicines"))
                 .andExpect(status().isOk())

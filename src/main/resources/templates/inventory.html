@@ -1,86 +1,139 @@
-<!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{fragments/head :: head('Inventory')}"></head>
-<body>
-<div class="app-wrapper">
-    <nav th:replace="~{fragments/layout :: sidebar}"></nav>
-    <div class="main-content">
-        <header th:replace="~{fragments/layout :: navbar}"></header>
-        <div class="content-area">
-            <div class="row g-4 mb-4">
-                <div class="col-md-2"><div class="stat-card"><h6>Total</h6><h3 th:text="${inventory.totalMedicines}">0</h3></div></div>
-                <div class="col-md-2"><div class="stat-card card-alert"><h6>Low Stock (&lt;10)</h6><h3 th:text="${inventory.lowStock}">0</h3></div></div>
-                <div class="col-md-2"><div class="stat-card card-expired"><h6>Out of Stock</h6><h3 th:text="${inventory.outOfStock}">0</h3></div></div>
-                <div class="col-md-2">
-                    <a th:href="@{/near-expiry-medicines}" class="stat-card-link" title="View medicines expiring within 30 days">
-                        <div class="stat-card card-alert">
-                            <h6>Near Expiry (30d)</h6>
-                            <h3 th:text="${inventory.nearExpiry}">0</h3>
-                        </div>
-                    </a>
-                </div>
-                <div class="col-md-2">
-                    <a th:href="@{/expired-medicines}" class="stat-card-link" title="View expired medicines">
-                        <div class="stat-card card-expired">
-                            <h6>Expired</h6>
-                            <h3 th:text="${inventory.expired}">0</h3>
-                        </div>
-                    </a>
-                </div>
-                <div class="col-md-2"><div class="stat-card card-profit"><h6>Valuation</h6><h3 th:text="'₹' + ${inventory.valuation}">₹0</h3></div></div>
-            </div>
-            <div class="btn-group mb-4">
-                <a th:href="@{/inventory}" th:class="${filter == 'ALL' ? 'btn btn-success' : 'btn btn-outline-success'}">All</a>
-                <a th:href="@{/inventory(filter='LOW_STOCK')}" th:class="${filter == 'LOW_STOCK' ? 'btn btn-warning' : 'btn btn-outline-warning'}">Low Stock</a>
-                <a th:href="@{/inventory(filter='OUT_OF_STOCK')}" th:class="${filter == 'OUT_OF_STOCK' ? 'btn btn-danger' : 'btn btn-outline-danger'}">Out of Stock</a>
-                <a th:href="@{/near-expiry-medicines}" th:class="${filter == 'NEAR_EXPIRY' ? 'btn btn-info' : 'btn btn-outline-info'}">Near Expiry (30d)</a>
-                <a th:href="@{/expired-medicines}" th:class="${filter == 'EXPIRED' ? 'btn btn-dark' : 'btn btn-outline-dark'}">Expired</a>
-            </div>
-            <div class="card">
-                <div class="card-header" th:if="${filter == 'NEAR_EXPIRY'}">
-                    <h5 class="mb-0"><i class="bi bi-calendar-event text-info"></i> Near Expiry Medicines (within 30 days)</h5>
-                </div>
-                <div class="card-header" th:if="${filter == 'EXPIRED'}">
-                    <h5 class="mb-0"><i class="bi bi-calendar-x text-danger"></i> Expired Medicines List</h5>
-                </div>
-                <div class="card-body table-responsive">
-                    <table class="table table-hover">
-                        <thead><tr><th>Code</th><th>Name</th><th>Batch</th><th>Expiry</th><th>Stock</th><th>Min Stock</th><th>Value</th></tr></thead>
-                        <tbody>
-                        <tr th:each="m : ${inventory.items}"
-                            th:class="${filter == 'EXPIRED' ? 'table-danger' : (filter == 'NEAR_EXPIRY' ? 'table-info' : '')}">
-                            <td th:text="${m.medicineCode}"></td>
-                            <td>
-                                <span th:text="${m.medicineName}"></span>
-                                <span th:if="${filter == 'NEAR_EXPIRY'}" class="badge bg-info text-dark ms-1">Expiring</span>
-                                <span th:if="${filter == 'EXPIRED'}" class="badge bg-danger ms-1">Expired</span>
-                            </td>
-                            <td th:text="${m.batchNumber}"></td>
-                            <td th:text="${m.expiryDate}"
-                                th:classappend="${filter == 'EXPIRED' or (m.expiryDate != null and m.expiryDate.isBefore(T(java.time.LocalDate).now())) ? ' text-danger fw-bold' : (filter == 'NEAR_EXPIRY' or (m.expiryDate != null and !m.expiryDate.isBefore(T(java.time.LocalDate).now()) and !m.expiryDate.isAfter(T(java.time.LocalDate).now().plusDays(30))) ? ' text-info fw-bold' : '')}"></td>
-                            <td th:text="${m.currentStock}"
-                                th:class="${m.currentStock != null and m.currentStock == 0 ? 'text-danger fw-bold' : (m.currentStock != null and m.currentStock > 0 and m.currentStock < 10 ? 'text-warning fw-bold' : '')}"></td>
-                            <td th:text="${m.minimumStock}"></td>
-                            <td th:with="stock=${m.currentStock != null ? m.currentStock : 0},
-                                         lineValue=${m.purchasePrice != null ? m.purchasePrice.multiply(new java.math.BigDecimal(stock)) : new java.math.BigDecimal(0)}"
-                                th:text="|₹${lineValue}|"></td>
-                        </tr>
-                        <tr th:if="${#lists.isEmpty(inventory.items)}">
-                            <td colspan="7" class="text-center text-muted py-4">
-                                <span th:if="${filter == 'EXPIRED'}">No expired medicines found.</span>
-                                <span th:if="${filter == 'NEAR_EXPIRY'}">No medicines expiring within 30 days.</span>
-                                <span th:if="${filter != 'EXPIRED' and filter != 'NEAR_EXPIRY'}">No medicines found for this filter.</span>
-                            </td>
-                        </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-        <footer th:replace="~{fragments/layout :: footer}"></footer>
-    </div>
-</div>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-<script th:src="@{/js/app.js}"></script>
-</body>
-</html>
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/head :: head('Inventory')}"></head>
+<body>
+<div class="app-wrapper">
+    <nav th:replace="~{fragments/layout :: sidebar}"></nav>
+    <div class="main-content">
+        <header th:replace="~{fragments/layout :: navbar}"></header>
+        <div class="content-area">
+            <div class="inventory-stats-grid mb-4">
+                <div class="inventory-stat-item">
+                    <div class="stat-card inventory-stat-card">
+                        <div class="inventory-stat-label-wrap">
+                            <h6 class="inventory-stat-label">Total</h6>
+                        </div>
+                        <div class="inventory-stat-amount-wrap">
+                            <p class="inventory-stat-value" th:text="${inventory.totalMedicines}">0</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="inventory-stat-item">
+                    <a th:href="@{/low-stock-medicines}" href="/low-stock-medicines" class="stat-card-link" title="View low stock medicines">
+                        <div class="stat-card card-alert inventory-stat-card">
+                            <div class="inventory-stat-label-wrap">
+                                <h6 class="inventory-stat-label" title="Medicines with fewer than 10 units">Low Stock</h6>
+                            </div>
+                            <div class="inventory-stat-amount-wrap">
+                                <p class="inventory-stat-value" th:text="${inventory.lowStock}">0</p>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+                <div class="inventory-stat-item">
+                    <div class="stat-card card-expired inventory-stat-card">
+                        <div class="inventory-stat-label-wrap">
+                            <h6 class="inventory-stat-label">Out of Stock</h6>
+                        </div>
+                        <div class="inventory-stat-amount-wrap">
+                            <p class="inventory-stat-value" th:text="${inventory.outOfStock}">0</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="inventory-stat-item">
+                    <a th:href="@{/near-expiry-medicines}" href="/near-expiry-medicines" class="stat-card-link" title="View medicines expiring within 30 days">
+                        <div class="stat-card card-alert inventory-stat-card">
+                            <div class="inventory-stat-label-wrap">
+                                <h6 class="inventory-stat-label">Near Expiry</h6>
+                            </div>
+                            <div class="inventory-stat-amount-wrap">
+                                <p class="inventory-stat-value" th:text="${inventory.nearExpiry}">0</p>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+                <div class="inventory-stat-item">
+                    <a th:href="@{/expired-medicines}" href="/expired-medicines" class="stat-card-link" title="View expired medicines">
+                        <div class="stat-card card-expired inventory-stat-card">
+                            <div class="inventory-stat-label-wrap">
+                                <h6 class="inventory-stat-label">Expired</h6>
+                            </div>
+                            <div class="inventory-stat-amount-wrap">
+                                <p class="inventory-stat-value" th:text="${inventory.expired}">0</p>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+                <div class="inventory-stat-item">
+                    <div class="stat-card card-profit inventory-stat-card">
+                        <div class="inventory-stat-label-wrap">
+                            <h6 class="inventory-stat-label">Valuation</h6>
+                        </div>
+                        <div class="inventory-stat-amount-wrap">
+                            <p class="inventory-stat-value inventory-stat-currency"
+                               th:text="|₹${#numbers.formatDecimal(inventory.valuation, 0, 'COMMA', 0, 'POINT')}|"
+                               th:title="|₹${#numbers.formatDecimal(inventory.valuation, 0, 'COMMA', 2, 'POINT')}|">₹0</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="btn-group flex-wrap mb-4 inventory-filter-tabs">
+                <a th:href="@{/inventory}" th:class="${filter == 'ALL' ? 'btn btn-success' : 'btn btn-outline-success'}">All</a>
+                <a th:href="@{/low-stock-medicines}" href="/low-stock-medicines" th:class="${filter == 'LOW_STOCK' ? 'btn btn-warning' : 'btn btn-outline-warning'}">Low Stock</a>
+                <a th:href="@{/inventory(filter='OUT_OF_STOCK')}" th:class="${filter == 'OUT_OF_STOCK' ? 'btn btn-danger' : 'btn btn-outline-danger'}">Out of Stock</a>
+                <a th:href="@{/near-expiry-medicines}" th:class="${filter == 'NEAR_EXPIRY' ? 'btn btn-info' : 'btn btn-outline-info'}">Near Expiry (30d)</a>
+                <a th:href="@{/expired-medicines}" th:class="${filter == 'EXPIRED' ? 'btn btn-dark' : 'btn btn-outline-dark'}">Expired</a>
+            </div>
+            <div class="card">
+                <div class="card-header" th:if="${filter == 'LOW_STOCK'}">
+                    <h5 class="mb-0"><i class="bi bi-exclamation-triangle text-warning"></i> Low Stock Medicines (&lt; 10 units)</h5>
+                </div>
+                <div class="card-header" th:if="${filter == 'NEAR_EXPIRY'}">
+                    <h5 class="mb-0"><i class="bi bi-calendar-event text-info"></i> Near Expiry Medicines (within 30 days)</h5>
+                </div>
+                <div class="card-header" th:if="${filter == 'EXPIRED'}">
+                    <h5 class="mb-0"><i class="bi bi-calendar-x text-danger"></i> Expired Medicines List</h5>
+                </div>
+                <div class="card-body table-responsive">
+                    <table class="table table-hover">
+                        <thead><tr><th>Code</th><th>Name</th><th>Batch</th><th>Expiry</th><th>Stock</th><th>Min Stock</th><th>Value</th></tr></thead>
+                        <tbody>
+                        <tr th:each="m : ${inventory.items}"
+                            th:class="${filter == 'EXPIRED' ? 'table-danger' : (filter == 'NEAR_EXPIRY' ? 'table-info' : '')}">
+                            <td th:text="${m.medicineCode}"></td>
+                            <td>
+                                <span th:text="${m.medicineName}"></span>
+                                <span th:if="${filter == 'LOW_STOCK'}" class="badge bg-warning text-dark ms-1">Low stock</span>
+                                <span th:if="${filter == 'NEAR_EXPIRY'}" class="badge bg-info text-dark ms-1">Expiring</span>
+                                <span th:if="${filter == 'EXPIRED'}" class="badge bg-danger ms-1">Expired</span>
+                            </td>
+                            <td th:text="${m.batchNumber}"></td>
+                            <td th:text="${m.expiryDate}"
+                                th:classappend="${filter == 'EXPIRED' or (m.expiryDate != null and m.expiryDate.isBefore(T(java.time.LocalDate).now())) ? ' text-danger fw-bold' : (filter == 'NEAR_EXPIRY' or (m.expiryDate != null and !m.expiryDate.isBefore(T(java.time.LocalDate).now()) and !m.expiryDate.isAfter(T(java.time.LocalDate).now().plusDays(30))) ? ' text-info fw-bold' : '')}"></td>
+                            <td th:text="${m.currentStock}"
+                                th:class="${m.currentStock != null and m.currentStock == 0 ? 'text-danger fw-bold' : (m.currentStock != null and m.currentStock > 0 and m.currentStock < 10 ? 'text-warning fw-bold' : '')}"></td>
+                            <td th:text="${m.minimumStock}"></td>
+                            <td th:with="stock=${m.currentStock != null ? m.currentStock : 0},
+                                         lineValue=${m.purchasePrice != null ? m.purchasePrice.multiply(new java.math.BigDecimal(stock)) : new java.math.BigDecimal(0)}"
+                                th:text="|₹${lineValue}|"></td>
+                        </tr>
+                        <tr th:if="${#lists.isEmpty(inventory.items)}">
+                            <td colspan="7" class="text-center text-muted py-4">
+                                <span th:if="${filter == 'EXPIRED'}">No expired medicines found.</span>
+                                <span th:if="${filter == 'NEAR_EXPIRY'}">No medicines expiring within 30 days.</span>
+                                <span th:if="${filter == 'LOW_STOCK'}">No low stock medicines found.</span>
+                                <span th:if="${filter != 'EXPIRED' and filter != 'NEAR_EXPIRY' and filter != 'LOW_STOCK'}">No medicines found for this filter.</span>
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <footer th:replace="~{fragments/layout :: footer}"></footer>
+    </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script th:src="@{/js/app.js}"></script>
+</body>
+</html>

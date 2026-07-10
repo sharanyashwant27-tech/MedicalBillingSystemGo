@@ -114,6 +114,11 @@ public class WebController {
         return renderInventory(model, "NEAR_EXPIRY");
     }
 
+    @GetMapping("/low-stock-medicines")
+    public String lowStockMedicines(Model model) {
+        return renderInventory(model, "LOW_STOCK");
+    }
+
     private String renderInventory(Model model, String filter) {
         String normalizedFilter = filter != null ? filter.toUpperCase() : "ALL";
         model.addAttribute("inventory", inventoryService.getInventorySummary(filter));
@@ -121,6 +126,7 @@ public class WebController {
         model.addAttribute("pageTitle", switch (normalizedFilter) {
             case "EXPIRED" -> "Expired Medicines";
             case "NEAR_EXPIRY" -> "Near Expiry Medicines (30 Days)";
+            case "LOW_STOCK" -> "Low Stock Medicines (< 10 units)";
             default -> "Inventory";
         });
         model.addAttribute("activePage", "inventory");

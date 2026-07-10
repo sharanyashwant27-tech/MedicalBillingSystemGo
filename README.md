@@ -31,6 +31,9 @@ Enterprise-level Medical Shop Billing System built with **Java 21**, **Spring Bo
 - **Low stock alerts (< 10 units)** — Navbar bell (unread highlight + read history list), inline message, dropdown panel; dashboard table; SMS/email on threshold crossing + scheduled digest (9 AM & 5 PM)
 - **Near expiry alerts (30 days)** — Bell notifications, dashboard stat card + table, dedicated list page; medicines expiring within 30 days highlighted in inventory
 - **Expired medicines** — Clickable dashboard card, summary table, and `/expired-medicines` list page
+- **Low stock medicines page** — Dedicated `/low-stock-medicines` route; dashboard **Low Stock** stat card links to filtered inventory list
+- **Inventory stat cards** — Responsive CSS grid on inventory pages; labels and values fit inside cards with ellipsis tooltips for long amounts
+- **Uniform site typography** — Single `--font-size-*` scale in `main.css` for body text, headings, tables, forms, sidebar, modals, and stat cards across all pages
 - **Dashboard master links** — Available Medicines, Customers, and Suppliers stat cards link to `/medicines`, `/customers`, and `/suppliers` CRUD pages; sidebar Suppliers link uses a plain `href` fallback for reliable navigation
 - Dark mode, dashboard charts, notification alerts
 - Sidebar logout with dedicated logout-success page
@@ -99,6 +102,7 @@ Both `medical-billing-mysql` and `medical-billing-app` should show **healthy**.
 | Login page | http://localhost:8085/login |
 | Dashboard | http://localhost:8085/dashboard |
 | Near expiry list | http://localhost:8085/near-expiry-medicines |
+| Low stock medicines list | http://localhost:8085/low-stock-medicines |
 | Expired medicines list | http://localhost:8085/expired-medicines |
 | Customers (CRUD) | http://localhost:8085/customers |
 | Suppliers (CRUD) | http://localhost:8085/suppliers |
@@ -127,7 +131,7 @@ After login, open the **Dashboard** at http://localhost:8085/dashboard. The **Me
 
 Open the bell dropdown to view alerts in a **listed format**. After you close the panel, alerts are marked **read** (no bell highlight; items appear muted with a “Read” label). New or changed alerts become unread again.
 
-**Dashboard pages:** Click **Available Medicines**, **Customers**, or **Suppliers** stat cards to open master CRUD pages. Click **Near Expiry (30 days)** or **Expired Medicines** for filtered inventory lists. Use **Online Orders** in the sidebar for full order CRUD (New Order modal, medicine name column, view/edit/delete). Configure shop **phone** and **email** under **Settings** for SMS/email low stock alerts.
+**Dashboard pages:** Click **Available Medicines**, **Customers**, or **Suppliers** stat cards to open master CRUD pages. Click **Low Stock (&lt;10)**, **Near Expiry (30 days)**, or **Expired Medicines** for filtered inventory lists. Use **Online Orders** in the sidebar for full order CRUD (New Order modal, medicine name column, view/edit/delete). Configure shop **phone** and **email** under **Settings** for SMS/email low stock alerts.
 
 ### Docker commands
 
@@ -162,7 +166,7 @@ docker inspect --format='{{.State.Health.Status}}' medical-billing-app
 
 | Service | Container name | Host port | Description |
 |---------|----------------|-----------|-------------|
-| `app` | medical-billing-app | **8085** → 8080 | Spring Boot app (`medical-billing-system:1.0.4`, profile `docker`) |
+| `app` | medical-billing-app | **8085** → 8080 | Spring Boot app (`medical-billing-system:1.0.5`, profile `docker`) |
 | `mysql` | medical-billing-mysql | (internal only) | MySQL 8.0 database |
 
 **Persistent volumes**
@@ -200,7 +204,8 @@ Environment variables (set in `.env` — never commit real values or pass them i
 | `MYSQL_ROOT_PASSWORD` variable is not set | No `.env` file | Run `cp .env.example .env` and fill in all required values |
 | `Access denied for user 'root'` after changing `.env` | MySQL volume still has the old password | Use the original password or reset: `docker compose down -v` then `docker compose up --build -d` |
 | Whitelabel Error Page (500) after code changes | Stale Docker image | `docker compose up --build -d app`, then hard-refresh the browser (Ctrl+Shift+R) |
-| Dashboard stat card link not working | Stale Docker image or browser cache | `docker compose up --build -d app`, then hard-refresh (Ctrl+F5); stat cards use full-width `stat-card-link` wrappers |
+| Inventory stat values overflow or fonts look inconsistent | Stale Docker image or browser cache | `docker compose up --build -d app`, then hard-refresh (Ctrl+F5); UI uses uniform `--font-size-*` tokens in `main.css` |
+| Low Stock dashboard card opens wrong page | Stale Docker image | `docker compose up --build -d app`; card links to `/low-stock-medicines` |
 | New Order button does nothing (Online Orders) | Stale Docker image missing order modal | `docker compose up --build -d app`, then hard-refresh (Ctrl+F5); page includes `#orderModal` and `online-orders.js` |
 | Logo or UI changes not visible | Browser or image cache | `docker compose up --build -d app`, then hard-refresh (Ctrl+F5) |
 | Bell icon shows no alerts | No matching stock/expiry or not logged in | Set medicine stock below 10 or expiry within 30 days; bell loads `/api/notifications/inventory-alerts` |
@@ -224,8 +229,8 @@ docker exec medical-billing-app unzip -l /app/app.jar | grep medibill-logo
 docker exec medical-billing-app unzip -l /app/app.jar | grep LowStockNotification
 docker exec medical-billing-app unzip -l /app/app.jar | grep NearExpiryNotification
 
-# Inspect online orders template in the image (should include orderModal and Medicine Name)
-docker exec medical-billing-app unzip -p /app/app.jar BOOT-INF/classes/templates/online-orders.html
+# Inspect inventory template in the image (low-stock route and stat grid)
+docker exec medical-billing-app unzip -p /app/app.jar BOOT-INF/classes/templates/inventory.html | head -80
 ```
 
 ### Notification configuration (optional)
@@ -318,7 +323,7 @@ MedicalBillingSystem/
 ├── src/main/resources/
 │   ├── application.properties
 │   ├── application-docker.properties
-│   ├── static/css/            # Stylesheets
+│   ├── static/css/            # main.css (uniform --font-size-* typography)
 │   ├── static/images/         # MediBill logo (medibill-logo.svg)
 │   ├── static/js/             # JavaScript modules
 │   └── templates/             # Thymeleaf HTML pages (fragments/layout.html sidebar brand)
@@ -416,7 +421,7 @@ curl -X DELETE http://localhost:8085/api/online-orders/1 \
 - Use named volumes for persistent data (`mysql_data`, `app_uploads`, `app_backups`)
 - Put a reverse proxy (Nginx/Traefik) in front for HTTPS
 - Rebuild the image as part of your deploy pipeline: `docker compose build app && docker compose up -d app`
-- Image tag: `medical-billing-system:1.0.4` (see `docker-compose.yml`)
+- Image tag: `medical-billing-system:1.0.5` (see `docker-compose.yml`)
 - Monitor health: `docker compose ps` — both services should report **healthy**
 
 ### JAR deployment
